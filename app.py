@@ -21,32 +21,37 @@ Created on Mon June 8th, 2018
 """
 
 # In[]:
-############################ Get Functions #########################################################
+############################ Get Functions ##################################################################################
 import os
-os.chdir("C://users//user//github//PRF-ALTIND")# Turn off for online deployment
+os.chdir("C:/users/user/github/PRF-ALTIND")# Turn off for online deployment
 from functions import *
 
-################# Test with Local Drive or Online with AWS files? ##################################
+################# Test with Local Drive or Online with AWS files? ###########################################################
 test = True
 
 # In[]:
-############################ Set up initial Signal #################################################
+############################ Set up initial Signal and data #################################################################
 import warnings
 warnings.filterwarnings("ignore") # The empty slice warnings are too much
-source = xr.open_rasterio("e:\\data\\droughtindices\\rma\\nad83\\prfgrid.tif") # Change or figure out how to load gdal in the VPS..Max
-#source = xr.open_rasterio("https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/rma/prfgrid.tif")
-source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities"]'
-grid = readRaster('data\\rma\\nad83\\prfgrid.tif',1,-9999)[0]
-#grid = readRaster('https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/rma/prfgrid.tif',1,-9999)[0]
-datatable = pd.read_csv("C:\\Users\\user\\Github\\Pasture-Rangeland-Forage\\data\\PRFIndex_specs.csv").to_dict('RECORDS')
 
-#datatable = pd.read_csv("https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/PRFIndex_specs.csv").to_dict('RECORDS')
-productivity = 1
+# For insurance grid IDs
+grid = np.load("data/prfgrid.npz")["grid"]
+# grid = readRaster('data/prfgrid.tif',1,-9999)[0] # For when I figure out how to install gdal on linux
+
+# For the scatterplot maps
+source = xr.open_dataarray("data/source_array.nc")
+#source = xr.open_rasterio("data/prfgrid.tif") # For when I figure out how to install gdal on linux
+
+# Really, this is for developing, but I might need it later
+source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities"]'
+
+# For the datatable at the bottom
+datatable = pd.read_csv("data/PRFIndex_specs.csv").to_dict('RECORDS')
 
 # Enable automatic garbage collection
-#gc.enable()
-######################### Total Project Description ################################################
-#description= open("README.txt").read()
+gc.enable()
+######################### Total Project Description #########################################################################
+#description= open("README.txt").read() # Does anyone know how justify a text file for RMarkdown?
 description_text = '''
                                      
 ##### Pasture, Rangeland, and Forage Rainfall-Index Insurance Program Alternate Index Project
@@ -87,31 +92,38 @@ Date: 5-26-2018
 
  
                         '''
+                        
+# These become titles for hover info 
 description  = ''
 mapinfo = ''
 trendinfo = ''
 seriesinfo = ''
+
 # In[]:
 ####################################################################################################
 ############################ Create the App Object #################################################
 ####################################################################################################
 # Create Dash Application Object
 app = dash.Dash(__name__)
+
+# I am using a cascading style sheet from one of the DASH examples (oil and gas extraction in New York)
 # I really need to get my own stylesheet, if anyone know how to do this...
+# Check this site: https://www.w3.org/Style/CSS/Overview.en.html
 app.css.append_css({'external_url': 'https://cdn.rawgit.com/plotly/dash-app-stylesheets/2d266c578d2a6e8850ebce48fdb52759b2aef506/stylesheet-oil-and-gas.css'})  # noqa: E501
+
 # Create server object
 server = app.server
+
 # No idea
-CORS(server)
-# Create and initialize a cache for storing data - data pocket
+#CORS(server)
+
+# Create and initialize a cache for storing data - data pocket - not totally sure about this yet. 
 cache = Cache(config = {'CACHE_TYPE':'simple'})
 cache.init_app(server)
 
-
-
 # In[]: 
 ####################################################################################################
-############################# Create AWS bucket ####################################################
+############################# Access AWS bucket ####################################################
 ####################################################################################################
 # If you want to use urls
 #session = boto3.session.Session(region_name='us-west-2')
@@ -119,9 +131,9 @@ cache.init_app(server)
 #                          aws_access_key_id='my-ACCESS-KEY-ID',
 #                          aws_secret_access_key='my-ACCESS-KEY')
 
-client = boto3.client('s3') #low-level functional API
-resource = boto3.resource('s3') #high-level object-oriented API
-bucket = resource.Bucket('pasture-rangeland-forage') 
+#client = boto3.client('s3') #low-level functional API
+#resource = boto3.resource('s3') #high-level object-oriented API
+#bucket = resource.Bucket('pasture-rangeland-forage') 
 
 # In[]:
 ###############################################################################
@@ -520,6 +532,7 @@ app.layout = html.Div(
 # Next step, create a numpy storage unit to store previously loaded arrays
 def global_store(signal):    
     # Unjson the signal (Back to original datatypes)
+#    signal = source_signal
     signal = json.loads(signal)
 
     # Rename signals for comprehension
@@ -533,23 +546,27 @@ def global_store(signal):
   
     if test == False:
         # Average Map
-        averagepath = ("onlinedata/AY"
+        averagepath = ("data/onlinedata/AY"
                    + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
-                   +"/"+rasterpath+"/array.npz") # This is where it breaks, because there is no rasterpath at first
+                   +"/"+rasterpath+"/array.npz")
         
         # Time-series path
-        timeseriespath = ("onlinedata/AY"
+        timeseriespath = ("data/onlinedata/AY"
                    + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
                    +"/"+rasterpath+"/arrays.npz")
         
         # Dates and Index name Path
-        datepath = ("onlinedata/AY"
+        datepath = ("data/onlinedata/AY"
                    + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
                    +"/"+rasterpath+"/dates.csv")
         
-        # Get with getNPY and getNPYs
-        array = getNPY(averagepath)
-        arrays = getNPYs(timeseriespath,datepath)
+        # Get numpy arrays
+        array = np.load(averagepath)
+        array = array.f.arr_0    
+        datedf = pd.read_csv(datepath)
+        arrays = np.load(timeseriespath)
+        arrays = arrays.f.arr_0    
+        arrays = [[datedf['dates'][i],arrays[i]] for i in range(len(arrays))]
 #        arrays.append(array) # Now the average is last, call it with [-1]
         df = arrays
     else:
@@ -577,7 +594,6 @@ def global_store(signal):
         arrays = [[datedf['dates'][i],arrays[i]] for i in range(len(arrays))]
 #        arrays.append(array) # Now the average is last, call it with [-1]
         df = arrays
-
     return df
         
 def retrieve_data(signal):
