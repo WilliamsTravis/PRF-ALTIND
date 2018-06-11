@@ -1,15 +1,18 @@
 
 # In[]:
-############################ Get Functions ##################################################################################
-windows = False # Change in function as well
+################################# Switching to/from Ubuntu VPS ##############################################################
+windows = False
 import os
 
 if windows == True:
     homepath = "C:/users/user/github/"
-    os.chdir(homepath + "PRF-ALTIND")# Turn off for online deployment
+    os.chdir(homepath + "PRF-ALTIND")
 else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
+    
+
+#############################################################################################################################
 
 from functions import *
 

@@ -4,16 +4,20 @@ Created on Sun May 28 21:14:48 2017
 
 @author: Travis
 """
+################################# Switching to/from Ubuntu VPS ###################
 windows = False
 import os
 
 if windows == True:
     homepath = "C:/users/user/github/"
-    os.chdir(homepath + "PRF-ALTIND")# Turn off for online deployment
+    os.chdir(homepath + "PRF-ALTIND")
 else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
-
+    
+from flask_cache import Cache # I have this one working on Windows but not Linux
+#from flask_caching import Cache # I have this one working on Linux but not Windows :)
+#################################################################################
 import copy
 import dash
 from dash.dependencies import Input, Output, State, Event
@@ -24,7 +28,6 @@ import gc
 import glob
 import json
 from flask import Flask
-from flask_cache import Cache
 import numpy as np
 import numpy.ma as ma
 import os
@@ -33,9 +36,7 @@ import plotly
 import time
 from tqdm import *
 import xarray as xr
-#from flask_caching import Cache
 #import gdal
-#import plotly.graph_objs as go
 #import rasterio
 #import boto3
 #import urllib
