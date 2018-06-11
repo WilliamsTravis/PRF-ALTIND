@@ -27,8 +27,6 @@ os.chdir("C:/users/user/github/PRF-ALTIND")# Turn off for online deployment
 from functions import *
 
 ################# Test with Local Drive or Online with AWS files? ###########################################################
-test = True
-
 # In[]:
 ############################ Set up initial Signal and data #################################################################
 import warnings
@@ -42,14 +40,49 @@ grid = np.load("data/prfgrid.npz")["grid"]
 source = xr.open_dataarray("data/source_array.nc")
 #source = xr.open_rasterio("data/prfgrid.tif") # For when I figure out how to install gdal on linux
 
-# Really, this is for developing, but I might need it later
-source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities"]'
-
 # For the datatable at the bottom
 datatable = pd.read_csv("data/PRFIndex_specs.csv").to_dict('RECORDS')
 
-# Enable automatic garbage collection
-gc.enable()
+############################# Set Scales by Signal ##########################################################################
+# Create a dictionary that finds the max values for each strike level and return type
+scaletable = pd.read_csv("data/PRF_Y_Scales.csv")
+
+########################## Load Index Arrays #################################################################################
+indexnames = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1','spei2','spei3','spei6']
+
+# Actuarial rate paths -- to be simplified
+with np.load('data/actuarial/premium_arrays_2017.npz') as data:
+    arrays = data.f.arr_0
+    data.close()
+with np.load('data/actuarial/premium_dates_2017.npz') as data:
+    dates = data.f.arr_0
+    data.close()
+premiums2017 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
+
+with np.load('data/actuarial/premium_arrays_2018.npz') as data:
+    arrays = data.f.arr_0
+    data.close()
+with np.load('data/actuarial/premium_dates_2018.npz') as data:
+    dates = data.f.arr_0
+    data.close()
+premiums2018= [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
+
+with np.load('data/actuarial/base_arrays_2017.npz') as data:
+    arrays = data.f.arr_0
+    data.close()
+with np.load('data/actuarial/base_dates_2017.npz') as data:
+    dates = data.f.arr_0
+    data.close()
+bases2017 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
+
+with np.load('data/actuarial/base_arrays_2018.npz') as data:
+    arrays = data.f.arr_0
+    data.close()
+with np.load('data/actuarial/base_dates_2018.npz') as data:
+    dates = data.f.arr_0
+    data.close()
+bases2018 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
+
 ######################### Total Project Description #########################################################################
 #description= open("README.txt").read() # Does anyone know how justify a text file for RMarkdown?
 description_text = '''
@@ -121,19 +154,6 @@ server = app.server
 cache = Cache(config = {'CACHE_TYPE':'simple'})
 cache.init_app(server)
 
-# In[]: 
-####################################################################################################
-############################# Access AWS bucket ####################################################
-####################################################################################################
-# If you want to use urls
-#session = boto3.session.Session(region_name='us-west-2')
-#s3client = session.client('s3', config= boto3.session.Config(signature_version='s3v4'),
-#                          aws_access_key_id='my-ACCESS-KEY-ID',
-#                          aws_secret_access_key='my-ACCESS-KEY')
-
-#client = boto3.client('s3') #low-level functional API
-#resource = boto3.resource('s3') #high-level object-oriented API
-#bucket = resource.Bucket('pasture-rangeland-forage') 
 
 # In[]:
 ###############################################################################
@@ -175,6 +195,14 @@ returns = [{'label':'Potential Producer Premiums','value':'premiums'},
           {'label':'Potential Net Payouts','value':'nets'},
           {'label':'Potential Loss Ratios','value':'lossratios'}]
 
+# These get the right number for the return type chosen
+returnumbers = {'premiums':0,
+               'indemnities':1,
+               'frequencies':2,
+               'pcfs':3,
+               'nets':4,
+               'lossratios':5}
+
 # This is for labeling
 returndict = {'premiums':'Potential Producer Premiums',
                'indemnities':'Potential Indemnities',
@@ -206,24 +234,24 @@ years = [int(y) for y in range(2000,2018)]
 yearmarks =dict(zip(years,years)) 
 
 # Data Frame Column Names
-dfcols = [{'label':"D.I.: Drought Index", 'value': 1},
-         { 'label':"A.Y.: Actuarial Year", 'value': 2},
-         {'label':"I.COV: Index Coefficient of Variance", 'value': 3},
+dfcols = [{'label':"DI: Drought Index", 'value': 1},
+         { 'label':"AY: Actuarial Year", 'value': 2},
+         {'label':"ICOV: Index Coefficient of Variance", 'value': 3},
          { 'label':"S: Strike" , 'value': 4},
-         { 'label':" B.R.: Baseline Year Range", 'value': 5},
-         { 'label':"S.R.: Study Year Range", 'value': 6},
-         { 'label':"T.S.: Temporal Scale", 'value': 7},
-         { 'label':"Max P.($): Max Payment", 'value': 8},
-         { 'label':"Min P.($): Minimum Payment", 'value': 9},  
-         { 'label':"Med P.($): Median Payment", 'value': 10},
-         { 'label':"Mean P.($): Mean Payment", 'value': 11}, 
-         { 'label':"P. SD: Payment Standard Deviation", 'value': 12}, 
-         { 'label':"M.P.SD: Monthly Payment Standard Deviation", 'value': 13},
-         { 'label':"Mean PCF: Mean Payment Calculation Factor", 'value': 14},
-         { 'label':"PCFSD: Payment Calculation Factor Standard Deviation", 'value': 15},
-         { 'label':"M. PCF SD: Monthly Payment Calculation Factor Standard Deviation", 'value': 16},
-         { 'label':"Mean P.F.: Mean Payout Frequency", 'value': 17},
-         { 'label':"M.P.FSD: Monthly Payout Frequency Standard Deviation", 'value': 18}]
+#         { 'label':" B.R.: Baseline Year Range", 'value': 5},
+#         { 'label':"S.R.: Study Year Range", 'value': 6},
+         { 'label':"TS: Temporal Scale", 'value': 7},
+         { 'label':"MAXP($): Max Payment", 'value': 8},
+         { 'label':"MINP($): Minimum Payment", 'value': 9},  
+         { 'label':"MEDP($): Median Payment", 'value': 10},
+         { 'label':"MEANP($): Mean Payment", 'value': 11}, 
+         { 'label':"SDP: Payment Standard Deviation", 'value': 12}, 
+         { 'label':"MOSDP: Monthly Payment Standard Deviation", 'value': 13},
+         { 'label':"MEANPCF: Mean Payment Calculation Factor", 'value': 14},
+         { 'label':"SDPCF: Payment Calculation Factor Standard Deviation", 'value': 15},
+         { 'label':"MOSDPCF: Monthly Payment Calculation Factor Standard Deviation", 'value': 16},
+         { 'label':"MEANPF: Mean Payout Frequency", 'value': 17},
+         { 'label':"MOSDPF: Monthly Payout Frequency Standard Deviation", 'value': 18}]
 
 # Create Coordinate Index - because I can't find the array position in the 
 # click event!
@@ -239,6 +267,7 @@ latdict2  = {y:x for x,y in latdict.items()} # This is backwards to link simplif
 # Create global chart template
 mapbox_access_token = 'pk.eyJ1IjoidHJhdmlzc2l1cyIsImEiOiJjamZiaHh4b28waXNkMnptaWlwcHZvdzdoIn0.9pxpgXxyyhM6qEF_dcyjIQ'
 
+# In[]:
 # Map Layout:
 # Check this out! https://paulcbauer.shinyapps.io/plotlylayout/
 layout = dict(
@@ -297,6 +326,26 @@ app.layout = html.Div(
                         'position': 'relative',
                     },
                 ),
+                html.Img(
+                    src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/nidis.png?raw=true",
+                    className='one columns',
+                    style={
+                        'height': '100',
+                        'width': '375',
+                        'float': 'right',
+                        'position': 'relative',
+                    },
+                ),
+                html.Img(
+                    src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/cires.png?raw=true",
+                    className='one columns',
+                    style={
+                        'height': '100',
+                        'width': '200',
+                        'float': 'right',
+                        'position': 'relative',
+                    },
+                ),
 
                 ],
                 className = 'row'
@@ -304,9 +353,12 @@ app.layout = html.Div(
         html.Div(# One
             [
                 html.H1(
-                    'Index Insurance Exploratory Analysis Tool: Could the PRF work with a drought index?',
+                    'Drought Index Insurance Analysis Tool: Could the PRF work with a drought index?',
                     className='twelve columns'
                 ),
+#                html.Button(id = 'loading_button',
+#                            children = 'Loading Project', 
+#                            type='button'),    
                 html.Button(id = 'description_button',
                             children = 'Project Description', 
                             title = description,
@@ -321,6 +373,15 @@ app.layout = html.Div(
             html.Div(
                     [
                         dcc.Markdown(id = "description",
+                                    children = description)        
+                    ],
+                    style = {'text-align':'justify',
+                             'margin-left':'150',
+                             'margin-right':'150'}
+                    ),
+                html.Div(
+                    [
+                        dcc.Markdown(id = "loading...",
                                     children = description)        
                     ],
                     style = {'text-align':'justify',
@@ -478,14 +539,7 @@ app.layout = html.Div(
                     ],
                     className='twelve columns',
                     style={'margin-top': '10'}
-                ),
-#                html.Div(#Six-a
-#                    [
-#                        dcc.Graph(id='histogram')
-#                    ],
-#                    className='six columns',
-#                    style={'margin-top': '10'}
-#                ),                
+                ),               
             ],
             className='row',
             style = {'margin-right':'50'},
@@ -525,6 +579,7 @@ app.layout = html.Div(
 
 
 # In[]:
+                
 ############################################################################### 
 ######################### Create Cache ######################################## 
 ############################################################################### 
@@ -532,68 +587,46 @@ app.layout = html.Div(
 # Next step, create a numpy storage unit to store previously loaded arrays
 def global_store(signal):    
     # Unjson the signal (Back to original datatypes)
-#    signal = source_signal
     signal = json.loads(signal)
+#    signal = ["noaa", 2018, [2000, 2017], 0.7, "indemnities"]
 
     # Rename signals for comprehension
-    rasterpath = signal[0]
+    index = signal[0]
     actuarialyear = signal[1]
     studyears = signal[2] # No study years yet :/
-#    baselineyears = signal[3]
     strike = signal[3]
-#    acres = signal[4]
     returntype = signal[4]     
-  
-    if test == False:
-        # Average Map
-        averagepath = ("data/onlinedata/AY"
-                   + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
-                   +"/"+rasterpath+"/array.npz")
-        
-        # Time-series path
-        timeseriespath = ("data/onlinedata/AY"
-                   + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
-                   +"/"+rasterpath+"/arrays.npz")
-        
-        # Dates and Index name Path
-        datepath = ("data/onlinedata/AY"
-                   + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
-                   +"/"+rasterpath+"/dates.csv")
-        
-        # Get numpy arrays
-        array = np.load(averagepath)
-        array = array.f.arr_0    
-        datedf = pd.read_csv(datepath)
-        arrays = np.load(timeseriespath)
-        arrays = arrays.f.arr_0    
-        arrays = [[datedf['dates'][i],arrays[i]] for i in range(len(arrays))]
-#        arrays.append(array) # Now the average is last, call it with [-1]
-        df = arrays
-    else:
-        # Average Map
-        averagepath = ("e:\\data\\prfpayouts\\onlinedata\\AY"
-                   + str(actuarialyear) + "\\"+str(int(strike*100)) + "\\"+str(returntype)
-                   +"\\"+rasterpath+"\\array.npz")
-        
-        # Time-series path
-        timeseriespath = ("e:\\data\\prfpayouts\\onlinedata\\AY"
-                   + str(actuarialyear) + "\\"+str(int(strike*100)) + "\\"+str(returntype)
-                   +"\\"+rasterpath+"\\arrays.npz")
-        
-        # Dates and Index name Path
-        datepath = ("e:\\data\\prfpayouts\\onlinedata\\AY"
-                   + str(actuarialyear) + "\\"+str(int(strike*100)) + "\\"+str(returntype)
-                   +"\\"+rasterpath+"\\dates.csv")
-        
-        # Get numpy arrays
-        array = np.load(averagepath)
-        array = array.f.arr_0    
-        datedf = pd.read_csv(datepath)
-        arrays = np.load(timeseriespath)
-        arrays = arrays.f.arr_0    
-        arrays = [[datedf['dates'][i],arrays[i]] for i in range(len(arrays))]
-#        arrays.append(array) # Now the average is last, call it with [-1]
-        df = arrays
+    
+    # Create a few copies
+    if actuarialyear == 2017:
+        bases = bases2017
+        premiums = premiums2017
+    elif actuarialyear == 2018:
+        bases = bases2018
+        premiums = premiums2018
+    
+    # Get index arrays
+    with np.load("data/indices/"+index+"_arrays.npz") as data:
+        arrays = data.f.arr_0
+        data.close()
+    with np.load("data/indices/"+index+"_dates.npz") as data:
+        names = data.f.arr_0
+        data.close()
+    indexlist = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
+
+    
+    # Calculate insurance payments and create a dictionary of the returns
+    # indexlist,grid, premiums, bases, actuarialyear, studyears, baselineyears, productivity, strike, acres, allocation,difference = 0, scale = True,plot = True    
+    df = indexInsurance(indexlist,grid,premiums, bases,actuarialyear, 
+                        studyears, [1948,2016], 1, 
+                        strike, 500, .5,
+                        difference = 0, scale = True, plot = False)
+    
+    # Return Order
+    # producerpremiums,indemnities,frequencies,pcfs,nets, lossratios,meanppremium,meanindemnity,frequencysum,meanpcf, net, lossratio
+    indx = returnumbers.get(returntype)
+    df = df[indx]
+    
     return df
         
 def retrieve_data(signal):
@@ -612,9 +645,7 @@ def retrieve_data(signal):
               [State('index_choice', 'value'),
                State('actuarial_year','value'),
                State('year_slider','value'),
-#               State('year_slider2','value'),
                State('strike_level','value'),
-#               State('acres','value'),
                State('return_type','value')])
 def compute_value(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype):
     signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype])
@@ -735,7 +766,7 @@ def makeMap(signal):
     """  
     # Clear memory space -- ??
     print(gc.garbage) # https://rushter.com/blog/python-garbage-collector/
-    gc.collect()
+    gc.collect(2)
     
     # Get data
     df = retrieve_data(signal)
@@ -746,6 +777,7 @@ def makeMap(signal):
     strike_level = signal[3]
     date1 = signal[2][0]
     date2 = signal[2][1]
+    actuarialyear = signal[1]
     
 #    # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
@@ -753,7 +785,10 @@ def makeMap(signal):
     # Get only the last array - 
 #    df = df[len(df)-1]
     df = [a[1] for a in df]
-    df = np.nanmean(df,axis = 0)
+    if return_type == 'frequencies':
+        df = np.nansum(df,axis = 0)#*mask
+    else:
+        df = np.nanmean(df,axis = 0)#*mask
 
     # Data symbol for hover data
     if return_type == "premiums" or return_type == "indemnities" or return_type == "nets":
@@ -793,7 +828,10 @@ def makeMap(signal):
                     [0.35, 'rgb(37, 180, 167)'], [0.45, 'rgb(134, 191, 118)'],
                     [0.6, 'rgb(249, 210, 41)'], [1.0, 'rgb(255, 249, 0)']] # Make darker
     
-
+# Get Y-scale
+    col = "max_"+return_type
+    maxy = max(scaletable[col])
+        
 # Create the scattermapbox object
     data = [ 
         dict(
@@ -807,7 +845,7 @@ def makeMap(signal):
             colorscale = colorscale,
             cmin = 0,
             color = df['data'],
-            cmax = 25000,#df['data'].max(),
+            cmax = maxy*.55,
             opacity=0.85,        
             size = 5,
             colorbar=dict(  
@@ -870,8 +908,8 @@ def makeTrendBar(clickData,signal):
         targetid  = grid[y,x]
  
     # Get signal for labeling
-    if not signal:
-        signal = source_signal
+
+#        signal = json.dumps(["noaa", 2018, [2000, 2017], 0.9, "indemnities"])
     df = retrieve_data(signal)
     signal = json.loads(signal)
     return_type = signal[4]
@@ -948,6 +986,9 @@ def makeTrendBar(clickData,signal):
             y=averages    
         ),
     ]
+                        
+                        
+    # For nets, let the bar go below zero
     if 'nets' in return_type:
         signal[4] = 'premiums'
         signal2 = json.dumps(signal)
@@ -956,11 +997,17 @@ def makeTrendBar(clickData,signal):
         ylow = -np.nanmax(arrays)
     else:
         ylow = 0
-    if max(averages) < 15000:
+        
+    # Set y-scale for most, rescale if too high
+    # Get Y-scale
+    col = "max_"+return_type
+    maxy = max(scaletable[col])
+        
+    if max(averages) < .75*maxy:
         yaxis = dict(
                 title = trenddict.get(return_type),
                 autorange=False,
-                range=[ylow, 15000],
+                range=[ylow, .75*maxy],
                 type='linear'
                 )
         annotation = dict(
@@ -975,7 +1022,8 @@ def makeTrendBar(clickData,signal):
     else:
         yaxis = dict(
                 title = trenddict.get(return_type),
-                autorange = True,
+                autorange = False,
+                range = [ylow,max(averages)*1.2],
                 type = 'linear'
                 )
         annotation = dict(
@@ -1113,11 +1161,14 @@ def makeSeries(clickData,signal):
     else:
         ylow = 0
         
-    if max(values) < 45000:
+    col = "max_"+return_type
+    maxy = max(scaletable[col])
+        
+    if max(values) < 1.5*maxy:
         yaxis = dict(
                 title = seriesdict.get(return_type),
                 autorange=False,
-                range=[ylow, 45000],
+                range=[ylow, 1.5*maxy],
                 type='linear'
                 )
         annotation = dict(
@@ -1133,7 +1184,8 @@ def makeSeries(clickData,signal):
     else:
         yaxis = dict(
                 title = seriesdict.get(return_type),
-                autorange = True,
+                autorange = False,
+                range = [ylow,max(values)*1.2],
                 type = 'linear'
                 )
         annotation = dict(
@@ -1160,54 +1212,6 @@ def makeSeries(clickData,signal):
         
     return figure
 
-## In[]          
-############################ I'll start with just the time series ##############
-## It needs to generate a path from signals stored in json format
-#signal = source_signal
-#jsignal = json.loads(signal)
-#
-## Rename signals for comprehension
-#index = jsignal[0]
-#actuarialyear = jsignal[1]
-#studyears = jsignal[2]
-#baselineyears = jsignal[3]
-#strike = jsignal[4]
-#acres = jsignal[5]
-#returntype = jsignal[6]
-#
-## Generate AWS Paths and get arrays
-#testpath = "onlinedata/arrays_test.npz"
-#
-## Average Map
-#averagepath = ("onlinedata/AY"
-#           + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
-#           +"/"+index+"/array.npy")
-#
-## Time-series path
-#timeseriespath = ("onlinedata/AY"
-#           + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
-#           +"/"+index+"/arrays.npy")
-#
-## Dates and Index name Path
-#datepath = ("onlinedata/AY"
-#           + str(actuarialyear) + "/"+str(int(strike*100)) + "/"+str(returntype)
-#           +"/"+index+"/dates.csv")
-#
-#
-## Read in arrays and dates - https://stackoverflow.com/questions/48964181/how-to-load-a-pickle-file-from-s3-to-use-in-aws-lambda
-#start = time.clock()
-#
-## Average Map ~ 1.5 seconds
-#testmap = getNPY(averagepath)
-#
-## Time-series
-## Test ~ 10 seconds, we might have to settle
-#timeseries = getNPYs(testpath,datepath)
-#
-## Total ~ 10.5 seconds? 
-#end = time.clock() - start       
-#print(end)
-## In[]:
     
 # In[]:
 # Main
