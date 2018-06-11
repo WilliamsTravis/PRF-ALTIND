@@ -4,6 +4,16 @@ Created on Sun May 28 21:14:48 2017
 
 @author: Travis
 """
+windows = False
+import os
+
+if windows == True:
+    homepath = "C:/users/user/github/"
+    os.chdir(homepath + "PRF-ALTIND")# Turn off for online deployment
+else:
+    homepath = "/home/ubuntu/"
+    os.chdir(homepath+"PRF-ALTIND")
+
 import copy
 import dash
 from dash.dependencies import Input, Output, State, Event
@@ -371,7 +381,7 @@ def getNPYs(numpypath,csvpath):
 ###########################################################################    
 def indexInsurance(indexlist,grid, premiums, bases, actuarialyear, studyears, baselineyears, productivity, strike, acres, 
                    allocation,difference = 0, scale = True,plot = True):
-    """
+    '''
     **** UNDER CONSTRUCTION AND OPEN TO SUGGESTION ****
 
         Takes in a list of raster paths and variables, namely a drought index of some sort and 
@@ -442,7 +452,8 @@ def indexInsurance(indexlist,grid, premiums, bases, actuarialyear, studyears, ba
                     
     **** UNDER CONSTRUCTION ****
     
-    """    
+    '''
+    
     ###########################################################################
     ############## Establish some necessary pieces to the calculation #########
     ###########################################################################
@@ -513,13 +524,13 @@ def indexInsurance(indexlist,grid, premiums, bases, actuarialyear, studyears, ba
         indexlist = standardize(indexlist)      
         
         # Find Matching Probability for strike level - do this here instead of having to save it. 
-        keydf = pd.read_csv("data\\Index Adjustments\\newstrikes.csv")
+        keydf = pd.read_csv(homepath+"data/Index_Adjustments/newstrikes.csv")
         if indexname not in list(keydf['index']):
             # Get the noaa values       
-            with np.load("data/noaa_arrays.npz") as data:
+            with np.load(homepath+"data/noaa_arrays.npz") as data:
                 arrays = data.f.arr_0
                 data.close()
-            with np.load("data/noaa_dates.npz") as data:
+            with np.load(homepath+"data/noaa_dates.npz") as data:
                 names = data.f.arr_0
                 data.close()
             indexlist = [[str(names[y]),arrays[y]] for y in range(len(arrays))]  
@@ -542,14 +553,14 @@ def indexInsurance(indexlist,grid, premiums, bases, actuarialyear, studyears, ba
             keydf = keydf.append(keydf2,ignore_index=True)
 
             # Save for next time
-            keydf.to_csv("data\\Index Adjustments\\newstrikes.csv",index=False)
+            keydf.to_csv(homepath+"data/Index_Adjustments/newstrikes.csv",index=False)
         else:
             newstrikes = keydf.ix[keydf["index"]==indexname]
             key = dict(zip(keydf['strike'],keydf['newstrike']))
             
         if scale == True:
         # Set up the payment scaling ratios.
-            scalardf = pd.read_csv("data\\Index Adjustments\\index_ratios.csv")
+            scalardf = pd.read_csv(homepath+"data/Index_Adjustments/index_ratios.csv")
             scalars = dict(zip(scalardf['index'],scalardf['ratio']))
             
             # Get the appropriate ratio for the current index's group

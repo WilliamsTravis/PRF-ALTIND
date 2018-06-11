@@ -1,28 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Okay, this will go into a github repository inside of a VPS. I can store the 
-    data directly on that machine. Next Steps. 
-        1) Reset all paths...consider using raw input to see if it will translate 
-            to linux. Not sure how that will work yet
-        2) Clean the functions list up to only include needed ones
-        3) I had a rather difficult time getting gdal installed on the VPS, but
-            for the USDM app i was able to get around using them altogether. 
-            This requires a netcdf file of any one of the US tifs to read in 
-            the source array for the scatter plot. 
-        4) Integrate this with github so I never have to use the terrible nano 
-            editor again!
-        5) Check this site out at some point. It's a digital ocean tutorial on
-            using github to automatically redeploy scripts in a VPS
-
-Created on Mon June 8th, 2018
-
-@author: Travis Williams
-        Travis.williams@colorado.edu
-"""
 
 # In[]:
 ############################ Get Functions ##################################################################################
-windows = True
+windows = False
 import os
 
 if windows == True:
@@ -93,7 +72,6 @@ bases2018 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
 ######################### Total Project Description #########################################################################
 #description= open("README.txt").read() # Does anyone know how justify a text file for RMarkdown?
 description_text = '''
-                                     
 ##### Pasture, Rangeland, and Forage Rainfall-Index Insurance Program Alternate Index Project
 
 
@@ -105,14 +83,14 @@ advance of  the insurance  year. This percentages is referred  to the strike lev
 subsidization and  the highest 51%. Higher strike  levels  increase premiums and decrease  subsidies, but  also increase the  chance  of payout. The degree  to  which a present  index falls below  the
 baseline average for a  particular interval is taken into account when determining the amount of payout, i.e. an index of .3 pays more than .5.This is done using what is called the payment calculation 
 factor (PCF), which is the ratio of the  difference  between the strike  level and observed  index values and the  strike level ((strike – index)/strike). Therefore, higher strike levels also increase
-the chances of larger  payouts. 
+the chances of larger  payouts.
 
 Importantly, it is not possible to insure the entire year and the policyholder must  choose how to allocate coverage over the eligible time periods. Eligible time periods are, as mentioned,  organized
 into two-month intervals.  These intervals overlap  such that the first includes  January  and February, the second  February and March and so on. December and January do  not overlap resulting  in 11 
 intervals per year. There are lower and upper limits to the amount of coverage that can be allocated to any one interval, depending on the county. 100% of the total coverage chosen by the policyholder
 must be split between these  intervals, however consecutive intervals may not be chosen because that would result in insurance of the same month twice. It is advised, by the RMA, that the intervals in
 which rainfall is most  important to forage production are chosen for the largest portions of  coverage. For example, 30% coverage could be allocated to the March-April  interval, 30%  to May-Jun, and
-40% to July-August.  There is, however, significant incentive not to insure growing season months for large portions of the country. 
+40% to July-August.  There is, however, significant incentive not to insure growing season months for large portions of the country.
 This project examines  how payouts patterns would change if the insurance program used any of a collection of alternate indices, with a focus on the seasonality of payment incentive. What is displayed
 below are potential payments  for every interval for a 500-acre policy allocating 50%  of  protection to each interval.  This shows  which intervals would have triggered  payment should they have been
 chosen by a policyholder.   This is displayed as a map of average payments for each location over time, a bar chart of average payments  in each insurance interval for a chosen location over time, and 
@@ -123,17 +101,16 @@ self-calibrated Palmer  Drought Severity Index (PDSIsc),  the Palmer Z-index (Z 
 Precipitation Evapotranspiration Indices (SPEI).
 
 Drought indices were  adjusted for outliers, standardized,  associated with strike values proportional  to those of the rainfall index,  and payments  were  scaled in order to account for an actuarial 
-system designed around rainfall. The results must be interpreted in terms of payout potential and not as a simulation of possible insurance plan configurations. 
+system designed around rainfall. The results must be interpreted in terms of payout potential and not as a simulation of possible insurance plan configurations.
 
-Earth Lab – CIRES at the University of Colorado Boulder                                                                                                                                                                               
-Author: Travis Williams                                                                                                                                                                                                                        
-Email: Travis.Williams@colorado.edu                                                                                                                                                                                                                        
+Earth Lab – CIRES at the University of Colorado Boulder
+Author: Travis Williams
+Email: Travis.Williams@colorado.edu
 Date: 5-26-2018
 
- 
+
                         '''
-                        
-# These become titles for hover info 
+# These become titles for hover info
 description  = ''
 mapinfo = ''
 trendinfo = ''
@@ -157,9 +134,9 @@ server = app.server
 # No idea
 #CORS(server)
 
-# Create and initialize a cache for storing data - data pocket - not totally sure about this yet. 
-cache = Cache(config = {'CACHE_TYPE':'simple'})
-cache.init_app(server)
+# Create and initialize a cache for storing data - data pocket - not totally sure about this yet.
+#cache = Cache(config = {'CACHE_TYPE':'simple'})
+#cache.init_app(server)
 
 
 # In[]:
@@ -189,9 +166,9 @@ indexnames = {'noaa': 'NOAA CPC-Derived Rainfall Index',
               'spi2':'Standardized Precipitation Index - 2 month',
               'spi3':'Standardized Precipitation Index - 3 month',
               'spi6':'Standardized Precipitation Index - 6 month',
-              'spei1': 'Standardized Precipitation-Evapotranspiration Index - 1 month', 
-              'spei2': 'Standardized Precipitation-Evapotranspiration Index - 2 month', 
-              'spei3': 'Standardized Precipitation-Evapotranspiration Index - 3 month', 
+              'spei1': 'Standardized Precipitation-Evapotranspiration Index - 1 month',
+              'spei2': 'Standardized Precipitation-Evapotranspiration Index - 2 month',
+              'spei3': 'Standardized Precipitation-Evapotranspiration Index - 3 month',
               'spei6': 'Standardized Precipitation-Evapotranspiration Index - 6 month'}
 
 # This is for accessing the dataset
@@ -238,8 +215,7 @@ strikes = [{'label':'70%','value':.70},
 
 # Year Markes for Slider
 years = [int(y) for y in range(2000,2018)]
-yearmarks =dict(zip(years,years)) 
-
+yearmarks =dict(zip(years,years))
 # Data Frame Column Names
 dfcols = [{'label':"DI: Drought Index", 'value': 1},
          { 'label':"AY: Actuarial Year", 'value': 2},
@@ -249,10 +225,10 @@ dfcols = [{'label':"DI: Drought Index", 'value': 1},
 #         { 'label':"S.R.: Study Year Range", 'value': 6},
          { 'label':"TS: Temporal Scale", 'value': 7},
          { 'label':"MAXP($): Max Payment", 'value': 8},
-         { 'label':"MINP($): Minimum Payment", 'value': 9},  
+         { 'label':"MINP($): Minimum Payment", 'value': 9},
          { 'label':"MEDP($): Median Payment", 'value': 10},
-         { 'label':"MEANP($): Mean Payment", 'value': 11}, 
-         { 'label':"SDP: Payment Standard Deviation", 'value': 12}, 
+         { 'label':"MEANP($): Mean Payment", 'value': 11},
+         { 'label':"SDP: Payment Standard Deviation", 'value': 12},
          { 'label':"MOSDP: Monthly Payment Standard Deviation", 'value': 13},
          { 'label':"MEANPCF: Mean Payment Calculation Factor", 'value': 14},
          { 'label':"SDPCF: Payment Calculation Factor Standard Deviation", 'value': 15},
@@ -260,7 +236,7 @@ dfcols = [{'label':"DI: Drought Index", 'value': 1},
          { 'label':"MEANPF: Mean Payout Frequency", 'value': 17},
          { 'label':"MOSDPF: Monthly Payout Frequency Standard Deviation", 'value': 18}]
 
-# Create Coordinate Index - because I can't find the array position in the 
+# Create Coordinate Index - because I can't find the array position in the
 # click event!
 xs = range(300)
 ys = range(120)
@@ -268,8 +244,8 @@ lons = [-130 + .25*x for x in range(0,300)]
 lats = [49.75 - .25*x for x in range(0,120)]
 londict = dict(zip(lons, xs))
 latdict = dict(zip(lats, ys))
-londict2  = {y:x for x,y in londict.items()} # This is backwards to link simplified column 
-latdict2  = {y:x for x,y in latdict.items()} # This is backwards to link simplified column 
+londict2  = {y:x for x,y in londict.items()} # This is backwards to link simplified column
+latdict2  = {y:x for x,y in latdict.items()} # This is backwards to link simplified column
 
 # Create global chart template
 mapbox_access_token = 'pk.eyJ1IjoidHJhdmlzc2l1cyIsImEiOiJjamZiaHh4b28waXNkMnptaWlwcHZvdzdoIn0.9pxpgXxyyhM6qEF_dcyjIQ'
@@ -289,7 +265,7 @@ layout = dict(
         t=65,
         pad = 4
     ),
-    
+
     hovermode="closest",
     plot_bgcolor="#e6efbf",
     paper_bgcolor="#083C04",
@@ -335,7 +311,7 @@ app.layout = html.Div(
                         'float': 'right',
                         'position': 'static',
                         },
-                            ),  
+                            ),
                         href = "http://wwa.colorado.edu/",
                         target = "_blank"
                             ),
@@ -377,12 +353,12 @@ app.layout = html.Div(
                     className='twelve columns'
                 ),
 #                html.Button(id = 'loading_button',
-#                            children = 'Loading Project', 
-#                            type='button'),    
+#                            children = 'Loading Project',
+#                            type='button'),
                 html.Button(id = 'description_button',
-                            children = 'Project Description', 
+                            children = 'Project Description',
                             title = description,
-                            type='button'),                             
+                            type='button'),
             ],
             className='row' ,
             style = {'font-weight':'bold',
@@ -393,7 +369,7 @@ app.layout = html.Div(
             html.Div(
                     [
                         dcc.Markdown(id = "description",
-                                    children = description)        
+                                    children = description)
                     ],
                     style = {'text-align':'justify',
                              'margin-left':'150',
@@ -402,14 +378,14 @@ app.layout = html.Div(
                 html.Div(
                     [
                         dcc.Markdown(id = "loading...",
-                                    children = description)        
+                                    children = description)
                     ],
                     style = {'text-align':'justify',
                              'margin-left':'150',
                              'margin-right':'150'}
                     ),
 
-        # Year Slider Text 
+        # Year Slider Text
         html.Div(# Two
             [
                 html.H5(
@@ -424,14 +400,14 @@ app.layout = html.Div(
 #                    id='year_text2',
 #                    className='two columns',
 #                    style={'text-align': 'center'}
-#                ),                
+#                ),
             ],
             className='row'
         ),
-        # Year Sliders 
+        # Year Sliders
         html.Div(
             [
-                html.P('Study Period Year Range'),  
+                html.P('Study Period Year Range'),
                 dcc.RangeSlider(
                     id='year_slider',
                     value=[2000, 2017],
@@ -439,7 +415,7 @@ app.layout = html.Div(
                     max=2017,
                     marks = yearmarks
                 ),
-#                html.P('Baseline Average Year Range'), 
+#                html.P('Baseline Average Year Range'),
 #                dcc.RangeSlider(
 #                    id='year_slider2',
 #                    value=[1948, 2016],
@@ -451,7 +427,7 @@ app.layout = html.Div(
             style={'margin-top': '20',
                    'margin-bottom': '40'}
         ),
-            
+
         # Selections
         html.Div(# Four
             [
@@ -461,7 +437,7 @@ app.layout = html.Div(
                         html.P('Drought Index'),
                         dcc.Dropdown(
                             id = 'index_choice',
-                            options = indices,                            
+                            options = indices,
                             value = "noaa",
                             placeholder = "NOAA CPC-Derived Rainfall Index"
                         ),
@@ -478,11 +454,10 @@ app.layout = html.Div(
 #                            placeholder = 'Number of acres...',
 #                            value = 500,
 #                            type = 'number'
-#                            )                   
+#                            )
                         ],
                     className='four columns'
                 ),
-                            
                 # Other Selections
                 html.Div(# Four-a
                     [
@@ -492,7 +467,7 @@ app.layout = html.Div(
                             options=strikes,
                             value=.75,
                             labelStyle={'display': 'inline-block'}
-                        ),                        
+                        ),
                         html.P('Actuarial Year'),
                         dcc.RadioItems(
                             id='actuarial_year',
@@ -510,7 +485,7 @@ app.layout = html.Div(
                ],
                 className = 'row'
             ),
-        # Hidden DIV to store the signal 
+        # Hidden DIV to store the signal
         html.Div(id='signal',
                  style={'display': 'none'}
 #                 children = ['noaa',2018,[2000, 2017],[1948, 2016], 0.8, 500,"indemnities"]
@@ -523,8 +498,8 @@ app.layout = html.Div(
                         dcc.Graph(id='main_graph'),
                         html.Button(id='map_info',
                                     title = mapinfo,
-                                    type='button', 
-                                    n_clicks = 0, 
+                                    type='button',
+                                    n_clicks = 0,
                                     children='Map Info \uFE56 (Hover)'),
                     ],
                     className='seven columns',
@@ -535,10 +510,10 @@ app.layout = html.Div(
                 html.Div(# Five-b
                     [
                         dcc.Graph(id='trend_graph'),
-                        html.Button(id='trend_info', 
+                        html.Button(id='trend_info',
                                     type='button',
                                     title = trendinfo,
-                                    n_clicks = 0, 
+                                    n_clicks = 0,
                                     children='Trend Info \uFE56 (Hover)'),
                     ],
                     className='five columns',
@@ -550,7 +525,7 @@ app.layout = html.Div(
             ],
             className='row',
         ),
-        # Time-Series 
+        # Time-Series
         html.Div(#Six
             [
                 html.Div(#Six-a
@@ -559,12 +534,12 @@ app.layout = html.Div(
                         html.Button(id='series_info',
                                     type='button',
                                     title = seriesinfo,
-                                    n_clicks = 0, 
+                                    n_clicks = 0,
                                     children='Time Series Info \uFE56 (Hover)'),
                     ],
 #                    className='twelve columns',
                     style={'margin-top': '10'}
-                ),               
+                ),
             ],
             className='row',
 #            style = {'margin-right':'50'},
@@ -574,7 +549,7 @@ app.layout = html.Div(
         html.Div(#Seven
             [
                 html.Div(
-                    [   html.H1(" "),                      
+                    [   html.H1(" "),
                         html.H4('Summary Statistics'),
                         html.H5("Column Key"),
                         dcc.Dropdown(options = dfcols,
@@ -591,26 +566,24 @@ app.layout = html.Div(
                     ],
                     className='twelve columns',
                     style={'width':'100%',
-                           'display': 'inline-block', 
+                           'display': 'inline-block',
                            'padding': '0 20'},
-                ),             
+                ),
             ],
             className='row'
         ),
     ],
     className='ten columns offset-by-one'
   )
-        
 
 
 # In[]:
-                
-############################################################################### 
-######################### Create Cache ######################################## 
-############################################################################### 
-@cache.memoize()
+###############################################################################
+######################### Create Cache ########################################
+###############################################################################
+#@cache.memoize()
 # Next step, create a numpy storage unit to store previously loaded arrays
-def global_store(signal):    
+def global_store(signal):
     # Unjson the signal (Back to original datatypes)
     signal = json.loads(signal)
 #    signal = ["noaa", 2018, [2000, 2017], 0.7, "indemnities"]
@@ -620,8 +593,7 @@ def global_store(signal):
     actuarialyear = signal[1]
     studyears = signal[2] # No study years yet :/
     strike = signal[3]
-    returntype = signal[4]     
-    
+    returntype = signal[4]
     # Create a few copies
     if actuarialyear == 2017:
         bases = bases2017
@@ -629,7 +601,6 @@ def global_store(signal):
     elif actuarialyear == 2018:
         bases = bases2018
         premiums = premiums2018
-    
     # Get index arrays
     with np.load(homepath + "data/indices/"+index+"_arrays.npz") as data:
         arrays = data.f.arr_0
@@ -639,21 +610,18 @@ def global_store(signal):
         data.close()
     indexlist = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
 
-    
+
     # Calculate insurance payments and create a dictionary of the returns
-    # indexlist,grid, premiums, bases, actuarialyear, studyears, baselineyears, productivity, strike, acres, allocation,difference = 0, scale = True,plot = True    
-    df = indexInsurance(indexlist,grid,premiums, bases,actuarialyear, 
-                        studyears, [1948,2016], 1, 
+    # indexlist,grid, premiums, bases, actuarialyear, studyears, baselineyears, productivity, strike, acres, allocation,difference = 0, scale = True,plot = True
+    df = indexInsurance(indexlist,grid,premiums, bases,actuarialyear,
+                        studyears, [1948,2016], 1,
                         strike, 500, .5,
                         difference = 0, scale = True, plot = False)
-    
     # Return Order
     # producerpremiums,indemnities,frequencies,pcfs,nets, lossratios,meanppremium,meanindemnity,frequencysum,meanpcf, net, lossratio
     indx = returnumbers.get(returntype)
     df = df[indx]
-    
     return df
-        
 def retrieve_data(signal):
     if str(type(signal)) == "<class 'NoneType'>":
         signal = source_signal
@@ -665,7 +633,7 @@ def retrieve_data(signal):
 ########################### Get Signal ########################################
 ###############################################################################
 # Store the data in the cache and hide the signal to activate it in the hidden div
-@app.callback(Output('signal', 'children'), 
+@app.callback(Output('signal', 'children'),
               [Input('submit','n_clicks')],
               [State('index_choice', 'value'),
                State('actuarial_year','value'),
@@ -677,10 +645,10 @@ def compute_value(clicks,index_choice,actuarial_year,year_slider,strike_level,re
     return signal
 
 
-# In[] 
-############################################################################### 
-######################### Create Callbacks #################################### 
-############################################################################### 
+# In[]
+###############################################################################
+######################### Create Callbacks ####################################
+###############################################################################
 # Other Call Backs
  # Slider1 -> Base line Year text
 @app.callback(Output('year_text', 'children'),
@@ -734,7 +702,7 @@ def update_trendinfo(signal,clickData):
     else:
         x = londict.get(clickData['points'][0]['lon'])
         y = latdict.get(clickData['points'][0]['lat'])
-        targetid  = grid[y,x]    
+        targetid  = grid[y,x]
     targetid = str(int(targetid))
 
     # Description for Info Button:
@@ -744,7 +712,7 @@ def update_trendinfo(signal,clickData):
                "acre ranch at the "+ str(int(strike_level*100)) + "% Strike Level and 100% "
                "productivity level.")
     return trendinfo
-    
+
 # Button4 -> Time Series Info Text
 @app.callback(Output('series_info', 'title'),
               [Input('signal', 'children'),
@@ -757,7 +725,7 @@ def update_seriesinfo(signal,clickData):
     strike_level = signal[3]
     year1 = signal[2][0]
     year2 = signal[2][1]
-    
+
     # For the grid id
     if clickData is None:
         x = londict.get(-100)
@@ -766,7 +734,7 @@ def update_seriesinfo(signal,clickData):
     else:
         x = londict.get(clickData['points'][0]['lon'])
         y = latdict.get(clickData['points'][0]['lat'])
-        targetid  = grid[y,x]    
+        targetid  = grid[y,x]
     targetid = str(int(targetid))
 
     # Description for Info Button:
@@ -776,39 +744,36 @@ def update_seriesinfo(signal,clickData):
                "total protection to each insurance interval from a hypothetical policy on a 500 "
                "acre ranch at the "+ str(int(strike_level*100)) + "% Strike Level and 100% "
                "productivity level.")
-    
+
     return seriesinfo
 # In[]
 ###############################################################################
 ######################### Graph Builders ######################################
 ###############################################################################
 @app.callback(Output('main_graph', 'figure'),
-              [Input('signal','children')]) 
+              [Input('signal','children')])
 def makeMap(signal):
     """
     This will be the map itself, it is not just for changing maps.
         In order to map over mapbox we are creating a scattermapbox object.
-    """  
+    """
     # Clear memory space -- ??
-    print(gc.garbage) # https://rushter.com/blog/python-garbage-collector/
-    gc.collect(2)
-    
+    #print(gc.garbage) # https://rushter.com/blog/python-garbage-collector/
+    #gc.collect(2)
+
     # Get data
     df = retrieve_data(signal)
-    
-    # Get signal for labeling    
+
+    # Get signal for labeling
     signal = json.loads(signal)
     return_type = signal[4]
     strike_level = signal[3]
     date1 = signal[2][0]
     date2 = signal[2][1]
     actuarialyear = signal[1]
-    
+
 #    # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
-#    
-    # Get only the last array - 
-#    df = df[len(df)-1]
     df = [a[1] for a in df]
     if return_type == 'frequencies':
         df = np.nansum(df,axis = 0)#*mask
@@ -820,22 +785,19 @@ def makeMap(signal):
         datasymbol = "$"
     else:
         datasymbol = ""
-        
     # Second, convert data back into an array, but in a from xarray recognizes
     array = np.array([df],dtype = "float32")
-    
     # Third, change the source array to this one. Source is defined up top
     source.data = array
-    
     # Fourth, bin the values into lat, long points for the dataframe
     dfs = xr.DataArray(source, name = "data")
     pdf = dfs.to_dataframe()
     step = .25
     to_bin = lambda x: np.floor(x / step) * step
     pdf["latbin"] = pdf.index.get_level_values('y').map(to_bin)
-    pdf["lonbin"] = pdf.index.get_level_values('x').map(to_bin)   
-    pdf['gridx']= pdf['lonbin'].map(londict)  
-    pdf['gridy']= pdf['latbin'].map(latdict)  
+    pdf["lonbin"] = pdf.index.get_level_values('x').map(to_bin)
+    pdf['gridx']= pdf['lonbin'].map(londict)
+    pdf['gridy']= pdf['latbin'].map(latdict)
     grid2 = np.copy(grid)
     grid2[np.isnan(grid2)] = 0
     pdf['grid'] = grid2[pdf['gridy'],pdf['gridx']]
@@ -847,18 +809,18 @@ def makeMap(signal):
     groups = pdf.groupby(("latbin", "lonbin"))
     df_flat = pdf.drop_duplicates(subset=['latbin', 'lonbin'])
     df= df_flat[np.isfinite(df_flat['data'])]
-    
+
     # Add Grid IDs
     colorscale = [[0, 'rgb(2, 0, 68)'], [0.25, 'rgb(17, 123, 215)'],# Make darker (pretty sure this one)
                     [0.35, 'rgb(37, 180, 167)'], [0.45, 'rgb(134, 191, 118)'],
                     [0.6, 'rgb(249, 210, 41)'], [1.0, 'rgb(255, 249, 0)']] # Make darker
-    
+
 # Get Y-scale
     col = "max_"+return_type
     maxy = max(scaletable[col])
-        
+
 # Create the scattermapbox object
-    data = [ 
+    data = [
         dict(
         type = 'scattermapbox',
         lon = df['lonbin'],
@@ -871,9 +833,9 @@ def makeMap(signal):
             cmin = 0,
             color = df['data'],
             cmax = maxy*.55,
-            opacity=0.85,        
+            opacity=0.85,
             size = 5,
-            colorbar=dict(  
+            colorbar=dict(
                 textposition = "auto",
                 orientation = "h",
                 font = dict(size = 15)
@@ -892,19 +854,18 @@ def makeMap(signal):
 #                 )
 #            )
         ]
-     
+
 
     # Title Business
     if return_type == 'frequencies':
         calc = "Sum "
     else:
         calc = "Average "
-        
+
     layout['title'] = ("<b>" +indexnames.get(signal[0]) +"<br>" +calc+returndict.get(return_type)
-                        +" | " +str(signal[2][0]) + " to " + str(signal[2][1])+ " | " 
+                        +" | " +str(signal[2][0]) + " to " + str(signal[2][1])+ " | "
                         + str(int(strike_level*100)) + "% Strike Level</b>")
     layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
-#                
     # Seventh wrap the data and layout into one
     figure = dict(data=data, layout=layout)
 #    return {'figure':figure,'info': index_package_all}
@@ -920,7 +881,7 @@ def makeMap(signal):
                Input('signal','children')])
 def makeTrendBar(clickData,signal):
     '''
-    Makes a monthly trend bar for the selected information type at the clicked 
+    Makes a monthly trend bar for the selected information type at the clicked
         location.
     '''
     if clickData is None:
@@ -931,7 +892,7 @@ def makeTrendBar(clickData,signal):
         x = londict.get(clickData['points'][0]['lon'])
         y = latdict.get(clickData['points'][0]['lat'])
         targetid  = grid[y,x]
- 
+
     # Get signal for labeling
 
 #        signal = json.dumps(["noaa", 2018, [2000, 2017], 0.9, "indemnities"])
@@ -940,13 +901,13 @@ def makeTrendBar(clickData,signal):
     return_type = signal[4]
     date1 = signal[2][0]
     date2 = signal[2][1]
-    
+
 #    # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
 
     # Catch the target grid cell
     index = np.where(grid == targetid)
-    
+
     # Create the time series of data at that gridcell
     timeseries = [[item[0],item[1][index]] for item in df]
     dates = [int(item[0][-6:-2]) for item in df]
@@ -964,10 +925,10 @@ def makeTrendBar(clickData,signal):
               9:'Sep-Oct',
               10:'Oct-Nov',
               11:'Nov-Dec'}
-    
+
     # The actual values
     valuelist = [[series[1] for series in timeseries if series[0][-2:] ==  interval] for interval in intervals]
-    
+
     # In tuple form for the bar chart
     if return_type == 'frequencies':
         averages =  tuple(np.asarray([np.sum(sublist) for sublist in valuelist]))
@@ -975,12 +936,12 @@ def makeTrendBar(clickData,signal):
     else:
         averages =  tuple(np.asarray([np.mean(sublist) for sublist in valuelist]))
         calc = "Averages "
-        
+
     intlabels = [months.get(i) for i in range(1,12)]
-    x = np.arange(len(intervals))    
-    
+    x = np.arange(len(intervals))
+
     layout_count = copy.deepcopy(layout)
-    colors = [            
+    colors = [
             "#050f51",#'darkblue',
             "#1131ff",#'blue',
             "#09bc45",#'somegreensishcolor',
@@ -1008,11 +969,9 @@ def makeTrendBar(clickData,signal):
             marker = dict(color = colors,line = dict(width = 3.5, color = "#000000")),
 #            yaxis = dict(range = [0,2500]),
             x=x,
-            y=averages    
+            y=averages
         ),
     ]
-                        
-                        
     # For nets, let the bar go below zero
     if 'nets' in return_type:
         signal[4] = 'premiums'
@@ -1022,12 +981,10 @@ def makeTrendBar(clickData,signal):
         ylow = -np.nanmax(arrays)
     else:
         ylow = 0
-        
     # Set y-scale for most, rescale if too high
     # Get Y-scale
     col = "max_"+return_type
     maxy = max(scaletable[col])
-        
     if max(averages) < .75*maxy:
         yaxis = dict(
                 title = trenddict.get(return_type),
@@ -1061,8 +1018,6 @@ def makeTrendBar(clickData,signal):
             xref="paper",
             yref="paper"
         )
-        
-    
     layout_count['title'] = ("<b>" +returndict.get(return_type)
                              + ' Monthly Trends <br> Grid ID: '
                              + str(int(targetid)) + "</b>")
@@ -1091,45 +1046,41 @@ def makeSeries(clickData,signal):
     if clickData is None:
         x = londict.get(-100)
         y = latdict.get(40)
-        targetid  = grid[y,x]    
+        targetid  = grid[y,x]
 
     else:
         x = londict.get(clickData['points'][0]['lon'])
         y = latdict.get(clickData['points'][0]['lat'])
         targetid  = grid[y,x]
-    
-    
+
     # Get data
-    if not signal:
-        signal = source_signal
-        
+#    if not signal:
+ #       signal = source_signal
     df = retrieve_data(signal)
-    
     # Get the signal for Labeling
     signal = json.loads(signal)
     return_type = signal[4]
     return_label = returndict.get(return_type)
     date1 = signal[2][0]
     date2 = signal[2][1]
-    
+
     #    # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
-    
+
     # For title
     dates = [item[0][-6:-2]+"-"+ item[0][-2:] for item in df]
     intervals = [int(d[-2:]) for d in dates]
 
     xlabels = [y for y in range(date1,date2+1)]
-            
+
     # Catch the target grid cell
     index = np.where(grid == targetid)
-    
+
     # Create the time series of data at that gridcell
     values = [float(item[1][index]) for item in df]
     valuesum = "<b>Total: ${:,}".format(int(np.sum(values))) + "</b>"
-    
     # Create Seasonal Colors
-    colors = {            
+    colors = {
         1:"#050f51",#'darkblue',
         2:"#1131ff",#'blue',
         3:"#09bc45",#'somegreensishcolor',
@@ -1142,9 +1093,9 @@ def makeSeries(clickData,signal):
         10:"#b7a500",#'darkkhaki',
         11:"#6a7dfc" #'differentblue'
         }
-    
+
     colors = [colors.get(d) for d in intervals]
-    
+
     annotation = dict(
             text= valuesum,
             x=0.95,
@@ -1154,12 +1105,12 @@ def makeSeries(clickData,signal):
             xref="paper",
             yref="paper"
         )
-        
+
     data = [
         dict(
-            x=dates,        
+            x=dates,
             y=values,
-            type='bar',            
+            type='bar',
             name= return_label+' Value Ditribution',
             opacity=1,
             hoverinfo='skip',
@@ -1176,7 +1127,7 @@ def makeSeries(clickData,signal):
 #            ),
 #        ),
     ]
-            
+
     if 'nets' in return_type:
         signal[4] = 'premiums'
         signal2 = json.dumps(signal)
@@ -1185,10 +1136,10 @@ def makeSeries(clickData,signal):
         ylow = -np.nanmax(arrays)
     else:
         ylow = 0
-        
+
     col = "max_"+return_type
     maxy = max(scaletable[col])
-        
+
     if max(values) < 1.5*maxy:
         yaxis = dict(
                 title = seriesdict.get(return_type),
@@ -1231,17 +1182,16 @@ def makeSeries(clickData,signal):
     layout_count['yaxis'] = yaxis
     layout_count['xaxis'] = dict(title= "Year",tickvals = xlabels, ticktext =xlabels, tickangle = 45 )
 
-    
-    
+
     figure = dict(data=data, layout=layout_count)
-        
     return figure
 
-    
+
 # In[]:
 # Main
 #if __name__ == '__main__':
 #    app.server.run(use_reloader = False, threaded=True)#debug=True
 
 if __name__ == '__main__':
-    app.run_server()#threaded=True
+    app.run_server()
+#threaded=True
