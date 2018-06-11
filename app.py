@@ -517,7 +517,7 @@ app.layout = html.Div(
                                     children='Map Info \uFE56 (Hover)'),
                     ],
                     className='seven columns',
-                    style={
+                    style={'float':'left',
                             'margin-top': '40'
                             }
                 ),
@@ -532,7 +532,8 @@ app.layout = html.Div(
                     ],
                     className='five columns',
                     style={
-                           'margin-top': '40',
+                            'float':'right',
+                           'margin-top': '40'
                            },
 
                 )
@@ -1129,7 +1130,7 @@ def makeSeries(clickData,signal):
 
     # Create the time series of data at that gridcell
     values = [float(item[1][index]) for item in df]
-    if return_type == "pcfs" or return_type == "lossratio":
+    if return_type == "pcfs" or return_type == "lossratios":
         valuesum = "<b>Total: {:,}".format(round(np.nanmean(values),4)) + "</b>"
     elif return_type == "frequencies":
         valuesum = "<b>Total: {:,}".format(int(np.nansum(values))) + "</b>"
