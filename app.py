@@ -8,10 +8,11 @@
 
 # In[]:
 ################################# Switching to/from Ubuntu VPS ##############################################################
-windows = True
+
+from sys import platform
 import os
 
-if windows == True:
+if platform == 'win32':
     homepath = "C:/users/user/github/"
     os.chdir(homepath + "PRF-ALTIND")
 else:

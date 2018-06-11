@@ -5,18 +5,18 @@ Created on Sun May 28 21:14:48 2017
 @author: Travis
 """
 ################################# Switching to/from Ubuntu VPS ###################
-windows = True
+from sys import platform
 import os
 
-if windows == True:
+if platform == 'win32':
     homepath = "C:/users/user/github/"
     os.chdir(homepath + "PRF-ALTIND")
+    from flask_cache import Cache # I have this one working on Windows but not Linux
 else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
+    from flask_caching import Cache # I have this one working on Linux but not Windows :)
     
-from flask_cache import Cache # I have this one working on Windows but not Linux
-#from flask_caching import Cache # I have this one working on Linux but not Windows :)
 #################################################################################
 import copy
 import dash
