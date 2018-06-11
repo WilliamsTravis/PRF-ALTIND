@@ -1,3 +1,10 @@
+# Issues:
+    # PCF maps are empty
+    # The Monthly Trend Box is not aligned
+    # Map changes could be quicker
+    # I took garbage collection out troubleshooting, put it back in
+    # Consider automatic gunicorn reloading with a webhook responding to github pushes, something like this:
+	# https://www.julo.ch/blog/lovely-deploy-with-gunicorn/ (maybe, it's old though)
 
 # In[]:
 ################################# Switching to/from Ubuntu VPS ##############################################################
@@ -10,7 +17,7 @@ if windows == True:
 else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
-    
+
 
 #############################################################################################################################
 

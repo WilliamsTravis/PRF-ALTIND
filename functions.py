@@ -15,8 +15,8 @@ else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
     
-from flask_cache import Cache # I have this one working on Windows but not Linux
-#from flask_caching import Cache # I have this one working on Linux but not Windows :)
+#from flask_cache import Cache # I have this one working on Windows but not Linux
+from flask_caching import Cache # I have this one working on Linux but not Windows :)
 #################################################################################
 import copy
 import dash
