@@ -24,9 +24,9 @@ import time
 from tqdm import *
 import xarray as xr
 #from flask_caching import Cache
-import gdal
+#import gdal
 #import plotly.graph_objs as go
-import rasterio
+#import rasterio
 #import boto3
 #import urllib
 #import botocore

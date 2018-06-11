@@ -22,8 +22,16 @@ Created on Mon June 8th, 2018
 
 # In[]:
 ############################ Get Functions ##################################################################################
+windows = True
 import os
-os.chdir("C:/users/user/github/PRF-ALTIND")# Turn off for online deployment
+
+if windows == True:
+    homepath = "C:/users/user/github/"
+    os.chdir(homepath + "PRF-ALTIND")# Turn off for online deployment
+else:
+    homepath = "/home/ubuntu/"
+    os.chdir(homepath+"PRF-ALTIND")
+
 from functions import *
 
 ################# Test with Local Drive or Online with AWS files? ###########################################################
@@ -33,52 +41,51 @@ import warnings
 warnings.filterwarnings("ignore") # The empty slice warnings are too much
 
 # For insurance grid IDs
-grid = np.load("data/prfgrid.npz")["grid"]
-# grid = readRaster('data/prfgrid.tif',1,-9999)[0] # For when I figure out how to install gdal on linux
+grid = np.load(homepath + "data/prfgrid.npz")["grid"]
+mask = grid * 0 +  1
 
 # For the scatterplot maps
-source = xr.open_dataarray("data/source_array.nc")
-#source = xr.open_rasterio("data/prfgrid.tif") # For when I figure out how to install gdal on linux
+source = xr.open_dataarray(homepath + "data/source_array.nc")
 
 # For the datatable at the bottom
-datatable = pd.read_csv("data/PRFIndex_specs.csv").to_dict('RECORDS')
+datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
 
 ############################# Set Scales by Signal ##########################################################################
 # Create a dictionary that finds the max values for each strike level and return type
-scaletable = pd.read_csv("data/PRF_Y_Scales.csv")
+scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
 
 ########################## Load Index Arrays #################################################################################
 indexnames = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1','spei2','spei3','spei6']
 
 # Actuarial rate paths -- to be simplified
-with np.load('data/actuarial/premium_arrays_2017.npz') as data:
+with np.load(homepath + 'data/actuarial/premium_arrays_2017.npz') as data:
     arrays = data.f.arr_0
     data.close()
-with np.load('data/actuarial/premium_dates_2017.npz') as data:
+with np.load(homepath + 'data/actuarial/premium_dates_2017.npz') as data:
     dates = data.f.arr_0
     data.close()
 premiums2017 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
 
-with np.load('data/actuarial/premium_arrays_2018.npz') as data:
+with np.load(homepath + 'data/actuarial/premium_arrays_2018.npz') as data:
     arrays = data.f.arr_0
     data.close()
-with np.load('data/actuarial/premium_dates_2018.npz') as data:
+with np.load(homepath + 'data/actuarial/premium_dates_2018.npz') as data:
     dates = data.f.arr_0
     data.close()
 premiums2018= [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
 
-with np.load('data/actuarial/base_arrays_2017.npz') as data:
+with np.load(homepath + 'data/actuarial/base_arrays_2017.npz') as data:
     arrays = data.f.arr_0
     data.close()
-with np.load('data/actuarial/base_dates_2017.npz') as data:
+with np.load(homepath + 'data/actuarial/base_dates_2017.npz') as data:
     dates = data.f.arr_0
     data.close()
 bases2017 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
 
-with np.load('data/actuarial/base_arrays_2018.npz') as data:
+with np.load(homepath + 'data/actuarial/base_arrays_2018.npz') as data:
     arrays = data.f.arr_0
     data.close()
-with np.load('data/actuarial/base_dates_2018.npz') as data:
+with np.load(homepath + 'data/actuarial/base_dates_2018.npz') as data:
     dates = data.f.arr_0
     data.close()
 bases2018 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
@@ -306,7 +313,7 @@ app.layout = html.Div(
              html.Div(# One
             [
         # Title and Image
-                html.Img(
+                html.A(html.Img(
                     src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/earthlab.png?raw=true",
                     className='one columns',
                     style={
@@ -314,29 +321,38 @@ app.layout = html.Div(
                         'width': '200',
                         'float': 'right',
                         'position': 'static'
-                    },
-                ),
-                html.Img(
+                        },
+                            ),
+                        href = "https://www.colorado.edu/earthlab/",
+                        target = "_blank"
+                        ),
+                html.A(html.Img(
                     src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/wwa_logo2015.png?raw=true",
                     className='one columns',
                     style={
                         'height': '100',
                         'width': '300',
                         'float': 'right',
-                        'position': 'relative',
-                    },
-                ),
-                html.Img(
+                        'position': 'static',
+                        },
+                            ),  
+                        href = "http://wwa.colorado.edu/",
+                        target = "_blank"
+                            ),
+                 html.A(html.Img(
                     src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/nidis.png?raw=true",
                     className='one columns',
                     style={
                         'height': '100',
-                        'width': '375',
+                        'width': '400',
                         'float': 'right',
                         'position': 'relative',
-                    },
-                ),
-                html.Img(
+                        },
+                            ),
+                        href = "https://www.drought.gov/drought/",
+                        target = "_blank"
+                        ),
+                 html.A(html.Img(
                     src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/cires.png?raw=true",
                     className='one columns',
                     style={
@@ -344,8 +360,12 @@ app.layout = html.Div(
                         'width': '200',
                         'float': 'right',
                         'position': 'relative',
-                    },
-                ),
+                        'margin-right':'20',
+                        },
+                            ),
+                        href = "https://cires.colorado.edu/",
+                        target = "_blank"
+                        ),
 
                 ],
                 className = 'row'
@@ -353,7 +373,7 @@ app.layout = html.Div(
         html.Div(# One
             [
                 html.H1(
-                    'Drought Index Insurance Analysis Tool: Could the PRF work with a drought index?',
+                    'Drought Index Insurance Analysis Laboratory',
                     className='twelve columns'
                 ),
 #                html.Button(id = 'loading_button',
@@ -427,6 +447,7 @@ app.layout = html.Div(
 #                    max=2017
 #                ),
             ],
+            className = "twelve columns",
             style={'margin-top': '20',
                    'margin-bottom': '40'}
         ),
@@ -495,7 +516,7 @@ app.layout = html.Div(
 #                 children = ['noaa',2018,[2000, 2017],[1948, 2016], 0.8, 500,"indemnities"]
             ),
         # Single Interactive Map
-        html.Div(#Five
+        html.Div(#Five...If any one sees this, what is wrong with the alignment! Just fix it, go ahead I don't care this is ridiculous
             [
                 html.Div(#Five-a
                     [
@@ -507,7 +528,9 @@ app.layout = html.Div(
                                     children='Map Info \uFE56 (Hover)'),
                     ],
                     className='seven columns',
-                    style={'margin-top': '40'}
+                    style={
+                            'margin-top': '40'
+                            }
                 ),
                 html.Div(# Five-b
                     [
@@ -519,13 +542,15 @@ app.layout = html.Div(
                                     children='Trend Info \uFE56 (Hover)'),
                     ],
                     className='five columns',
-                    style={'margin-top': '40'}
+                    style={
+                           'margin-top': '40',
+                           },
+
                 )
             ],
             className='row',
-#            style = {'margin-right':'0'},
         ),
-        # Time-Series and histogram
+        # Time-Series 
         html.Div(#Six
             [
                 html.Div(#Six-a
@@ -537,12 +562,12 @@ app.layout = html.Div(
                                     n_clicks = 0, 
                                     children='Time Series Info \uFE56 (Hover)'),
                     ],
-                    className='twelve columns',
+#                    className='twelve columns',
                     style={'margin-top': '10'}
                 ),               
             ],
             className='row',
-            style = {'margin-right':'50'},
+#            style = {'margin-right':'50'},
 
         ),
         # Data chart
@@ -606,10 +631,10 @@ def global_store(signal):
         premiums = premiums2018
     
     # Get index arrays
-    with np.load("data/indices/"+index+"_arrays.npz") as data:
+    with np.load(homepath + "data/indices/"+index+"_arrays.npz") as data:
         arrays = data.f.arr_0
         data.close()
-    with np.load("data/indices/"+index+"_dates.npz") as data:
+    with np.load(homepath + "data/indices/"+index+"_dates.npz") as data:
         names = data.f.arr_0
         data.close()
     indexlist = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
@@ -1048,7 +1073,7 @@ def makeTrendBar(clickData,signal):
                                 tickangle = 45)
     layout['titlefont'] = {'color':'#CCCCCC','size' : 18}
     layout_count['yaxis'] = yaxis
-    layout_count['margin'] =   dict(l=60, r=35, b=75,t=65, pad = 4)
+#    layout_count['margin'] =   dict(l=60, r=35, b=75,t=65, pad = 4)
     figure = dict(data=data, layout=layout_count )
     return figure
 
