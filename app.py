@@ -1,7 +1,7 @@
 
 # In[]:
 ############################ Get Functions ##################################################################################
-windows = False
+windows = False # Change in function as well
 import os
 
 if windows == True:
@@ -135,8 +135,8 @@ server = app.server
 #CORS(server)
 
 # Create and initialize a cache for storing data - data pocket - not totally sure about this yet.
-#cache = Cache(config = {'CACHE_TYPE':'simple'})
-#cache.init_app(server)
+cache = Cache(config = {'CACHE_TYPE':'simple'})
+cache.init_app(server)
 
 
 # In[]:
@@ -581,7 +581,7 @@ app.layout = html.Div(
 ###############################################################################
 ######################### Create Cache ########################################
 ###############################################################################
-#@cache.memoize()
+@cache.memoize()
 # Next step, create a numpy storage unit to store previously loaded arrays
 def global_store(signal):
     # Unjson the signal (Back to original datatypes)
