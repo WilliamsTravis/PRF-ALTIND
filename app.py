@@ -281,13 +281,13 @@ layout = dict(
     ),
 
     hovermode="closest",
-    plot_bgcolor="#e6efbf",
+    plot_bgcolor="#eee",
     paper_bgcolor="#083C04",
     legend=dict(font=dict(size=10), orientation='h'),
     title='<b>Potential Payout Frequencies</b>',
     mapbox=dict(
         accesstoken=mapbox_access_token,
-        style="satellite-streets",
+        style="light",
         center=dict(
             lon= -95.7,
             lat= 37.1
