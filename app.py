@@ -8,7 +8,7 @@
 
 # In[]:
 ################################# Switching to/from Ubuntu VPS ##############################################################
-windows = False
+windows = True
 import os
 
 if windows == True:
@@ -35,6 +35,7 @@ mask = grid * 0 +  1
 
 # For the scatterplot maps
 source = xr.open_dataarray(homepath + "data/source_array.nc")
+source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities"]'
 
 # For the datatable at the bottom
 datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
@@ -43,41 +44,43 @@ datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
 # Create a dictionary that finds the max values for each strike level and return type
 scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
 
+############################# Option #2: Calculate Payouts ##################################################################
 ########################## Load Index Arrays #################################################################################
-indexnames = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1','spei2','spei3','spei6']
-
-# Actuarial rate paths -- to be simplified
-with np.load(homepath + 'data/actuarial/premium_arrays_2017.npz') as data:
-    arrays = data.f.arr_0
-    data.close()
-with np.load(homepath + 'data/actuarial/premium_dates_2017.npz') as data:
-    dates = data.f.arr_0
-    data.close()
-premiums2017 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
-
-with np.load(homepath + 'data/actuarial/premium_arrays_2018.npz') as data:
-    arrays = data.f.arr_0
-    data.close()
-with np.load(homepath + 'data/actuarial/premium_dates_2018.npz') as data:
-    dates = data.f.arr_0
-    data.close()
-premiums2018= [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
-
-with np.load(homepath + 'data/actuarial/base_arrays_2017.npz') as data:
-    arrays = data.f.arr_0
-    data.close()
-with np.load(homepath + 'data/actuarial/base_dates_2017.npz') as data:
-    dates = data.f.arr_0
-    data.close()
-bases2017 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
-
-with np.load(homepath + 'data/actuarial/base_arrays_2018.npz') as data:
-    arrays = data.f.arr_0
-    data.close()
-with np.load(homepath + 'data/actuarial/base_dates_2018.npz') as data:
-    dates = data.f.arr_0
-    data.close()
-bases2018 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
+## Actuarial Rates
+#indices = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1','spei2','spei3','spei6']
+#
+## Actuarial rate paths -- to be simplified
+#with np.load(homepath + 'data/actuarial/premium_arrays_2017.npz') as data:
+#    arrays = data.f.arr_0
+#    data.close()
+#with np.load(homepath + 'data/actuarial/premium_dates_2017.npz') as data:
+#    dates = data.f.arr_0
+#    data.close()
+#premiums2017 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
+#
+#with np.load(homepath + 'data/actuarial/premium_arrays_2018.npz') as data:
+#    arrays = data.f.arr_0
+#    data.close()
+#with np.load(homepath + 'data/actuarial/premium_dates_2018.npz') as data:
+#    dates = data.f.arr_0
+#    data.close()
+#premiums2018= [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
+#
+#with np.load(homepath + 'data/actuarial/base_arrays_2017.npz') as data:
+#    arrays = data.f.arr_0
+#    data.close()
+#with np.load(homepath + 'data/actuarial/base_dates_2017.npz') as data:
+#    dates = data.f.arr_0
+#    data.close()
+#bases2017 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
+#
+#with np.load(homepath + 'data/actuarial/base_arrays_2018.npz') as data:
+#    arrays = data.f.arr_0
+#    data.close()
+#with np.load(homepath + 'data/actuarial/base_dates_2018.npz') as data:
+#    dates = data.f.arr_0
+#    data.close()
+#bases2018 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
 
 ######################### Total Project Description #########################################################################
 #description= open("README.txt").read() # Does anyone know how justify a text file for RMarkdown?
@@ -604,34 +607,53 @@ def global_store(signal):
     studyears = signal[2] # No study years yet :/
     strike = signal[3]
     returntype = signal[4]
-    # Create a few copies
-    if actuarialyear == 2017:
-        bases = bases2017
-        premiums = premiums2017
-    elif actuarialyear == 2018:
-        bases = bases2018
-        premiums = premiums2018
-    # Get index arrays
-    with np.load(homepath + "data/indices/"+index+"_arrays.npz") as data:
+    
+    
+    ################## Option #1: Retrieve Payouts ###########################
+    path = (homepath + "data/payouts/AY" + str(actuarialyear) + 
+               "/" + str(int(strike*100)) + "/" 
+                 + returntype + "/" +
+                   index
+                  )
+    with np.load(path + "/arrays.npz") as data:
         arrays = data.f.arr_0
-        data.close()
-    with np.load(homepath + "data/indices/"+index+"_dates.npz") as data:
-        names = data.f.arr_0
-        data.close()
-    indexlist = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
+        data.close()        
+    dates = pd.read_csv(path+"/dates.csv")
 
+    df = [[str(dates['dates'][y]),arrays[y]] for y in range(len(arrays))]
 
-    # Calculate insurance payments and create a dictionary of the returns
-    # indexlist,grid, premiums, bases, actuarialyear, studyears, baselineyears, productivity, strike, acres, allocation,difference = 0, scale = True,plot = True
-    df = indexInsurance(indexlist,grid,premiums, bases,actuarialyear,
-                        studyears, [1948,2016], 1,
-                        strike, 500, .5,
-                        difference = 0, scale = True, plot = False)
-    # Return Order
-    # producerpremiums,indemnities,frequencies,pcfs,nets, lossratios,meanppremium,meanindemnity,frequencysum,meanpcf, net, lossratio
-    indx = returnumbers.get(returntype)
-    df = df[indx]
+    ################## Option #2: Calculate Payouts ##########################
+#    # Create a few copies
+#    if actuarialyear == 2017:
+#        bases = bases2017
+#        premiums = premiums2017
+#    elif actuarialyear == 2018:
+#        bases = bases2018
+#        premiums = premiums2018
+#    # Get index arrays
+#    with np.load(homepath + "data/indices/"+index+"_arrays.npz") as data:
+#        arrays = data.f.arr_0
+#        data.close()
+#    with np.load(homepath + "data/indices/"+index+"_dates.npz") as data:
+#        names = data.f.arr_0
+#        data.close()
+#    indexlist = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
+#
+#
+#    # Calculate insurance payments and create a dictionary of the returns
+#    # indexlist,grid, premiums, bases, actuarialyear, studyears, baselineyears, productivity, strike, acres, allocation,difference = 0, scale = True,plot = True
+#    df = indexInsurance(indexlist,grid,premiums, bases,actuarialyear,
+#                        studyears, [1948,2016], 1,
+#                        strike, 500, .5,
+#                        difference = 0, scale = True, plot = False)
+#    # Return Order
+#    # producerpremiums,indemnities,frequencies,pcfs,nets, lossratios,meanppremium,meanindemnity,frequencysum,meanpcf, net, lossratio
+#    indx = returnumbers.get(returntype)
+#    df = df[indx]
+    
+    
     return df
+
 def retrieve_data(signal):
     if str(type(signal)) == "<class 'NoneType'>":
         signal = source_signal
@@ -786,9 +808,9 @@ def makeMap(signal):
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
     df = [a[1] for a in df]
     if return_type == 'frequencies':
-        df = np.nansum(df,axis = 0)#*mask
+        df = np.nansum(df,axis = 0)*mask
     else:
-        df = np.nanmean(df,axis = 0)#*mask
+        df = np.nanmean(df,axis = 0)*mask
 
     # Data symbol for hover data
     if return_type == "premiums" or return_type == "indemnities" or return_type == "nets":
@@ -811,11 +833,12 @@ def makeMap(signal):
     grid2 = np.copy(grid)
     grid2[np.isnan(grid2)] = 0
     pdf['grid'] = grid2[pdf['gridy'],pdf['gridx']]
-    pdf['grid'] = pdf['grid'].apply(int)
-    pdf['grid'] = pdf['grid'].apply(str)
-    pdf['printdata'] =  "<br>Data: "+datasymbol+pdf.apply(lambda x: x['data'] if pd.isnull(x['data']) else "{:,}".format(round(x['data'])), axis=1)#.apply(str)
-    pdf['wordgrid'] = "GRID #: "
-    pdf['grid2'] = pdf['wordgrid'] + pdf['grid'] +pdf['printdata']
+    pdf['grid'] = pdf['grid'].apply(int).apply(str)
+#    pdf['grid'] = pdf['grid'].apply(str)
+    pdf['data'] = pdf['data'].astype(float).round(3)
+    pdf['printdata'] = "GRID #: " + pdf['grid'] +"<br>Data: " + pdf['data'].apply(str)
+    # below adds commas but takes too long
+#    pdf['printdata'] =  "<br>Data: "+datasymbol+pdf.apply(lambda x: x['data'] if pd.isnull(x['data']) else "{:,}".format(round(x['data'])), axis=1)#.apply(str)
     groups = pdf.groupby(("latbin", "lonbin"))
     df_flat = pdf.drop_duplicates(subset=['latbin', 'lonbin'])
     df= df_flat[np.isfinite(df_flat['data'])]
@@ -826,16 +849,29 @@ def makeMap(signal):
                     [0.6, 'rgb(249, 210, 41)'], [1.0, 'rgb(255, 249, 0)']] # Make darker
 
 # Get Y-scale
-    col = "max_"+return_type
-    maxy = max(scaletable[col])
+    if 'nets' in return_type:
+        signal[4] = 'premiums'
+        signal2 = json.dumps(signal)
+        df2 = retrieve_data(signal2)
+        arrays = [a[1] for a in df2]
+        ylow = -np.nanmax(arrays)
+    else:
+        ylow = 0
 
+    if return_type != "premiums":
+        col = "max_"+return_type
+        maxy = max(scaletable[col])
+        maxy =  100 if return_type == "frequencies" else maxy
+    else:
+        maxy = 2000
+        
 # Create the scattermapbox object
     data = [
         dict(
         type = 'scattermapbox',
         lon = df['lonbin'],
         lat = df['latbin'],
-        text = df['grid2'],
+        text = df['printdata'],
         mode = 'markers',
         hoverinfo = 'text',
         marker = dict(
@@ -982,7 +1018,7 @@ def makeTrendBar(clickData,signal):
             y=averages
         ),
     ]
-    # For nets, let the bar go below zero
+                        
     if 'nets' in return_type:
         signal[4] = 'premiums'
         signal2 = json.dumps(signal)
@@ -991,10 +1027,14 @@ def makeTrendBar(clickData,signal):
         ylow = -np.nanmax(arrays)
     else:
         ylow = 0
-    # Set y-scale for most, rescale if too high
-    # Get Y-scale
-    col = "max_"+return_type
-    maxy = max(scaletable[col])
+
+    if return_type != "premiums":
+        col = "max_"+return_type
+        maxy = max(scaletable[col])
+        maxy = 15 if return_type == "frequencies" else maxy
+    else:
+        maxy = 5000
+        
     if max(averages) < .75*maxy:
         yaxis = dict(
                 title = trenddict.get(return_type),
@@ -1088,7 +1128,13 @@ def makeSeries(clickData,signal):
 
     # Create the time series of data at that gridcell
     values = [float(item[1][index]) for item in df]
-    valuesum = "<b>Total: ${:,}".format(int(np.sum(values))) + "</b>"
+    if return_type == "pcfs" or return_type == "lossratio":
+        valuesum = "<b>Total: {:,}".format(round(np.nanmean(values),4)) + "</b>"
+    elif return_type == "frequencies":
+        valuesum = "<b>Total: {:,}".format(int(np.nansum(values))) + "</b>"
+    else:
+        valuesum = "<b>Total: ${:,}".format(int(np.nansum(values))) + "</b>"
+
     # Create Seasonal Colors
     colors = {
         1:"#050f51",#'darkblue',
@@ -1147,8 +1193,12 @@ def makeSeries(clickData,signal):
     else:
         ylow = 0
 
-    col = "max_"+return_type
-    maxy = max(scaletable[col])
+    if return_type != "premiums":
+        col = "max_"+return_type
+        maxy = max(scaletable[col])
+        maxy = 1 if return_type == "frequencies" else maxy
+    else:
+        maxy = 1000
 
     if max(values) < 1.5*maxy:
         yaxis = dict(

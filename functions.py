@@ -5,7 +5,7 @@ Created on Sun May 28 21:14:48 2017
 @author: Travis
 """
 ################################# Switching to/from Ubuntu VPS ###################
-windows = False
+windows = True
 import os
 
 if windows == True:
@@ -15,8 +15,8 @@ else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
     
-#from flask_cache import Cache # I have this one working on Windows but not Linux
-from flask_caching import Cache # I have this one working on Linux but not Windows :)
+from flask_cache import Cache # I have this one working on Windows but not Linux
+#from flask_caching import Cache # I have this one working on Linux but not Windows :)
 #################################################################################
 import copy
 import dash
@@ -36,7 +36,7 @@ import plotly
 import time
 from tqdm import *
 import xarray as xr
-#import gdal
+import gdal
 #import rasterio
 #import boto3
 #import urllib

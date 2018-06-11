@@ -9,6 +9,8 @@ Collecting all the information from each index and set of parameters
 import os  
 os.chdir("C:/Users/user/github/PRF-ALTIND")
 from functions import *
+os.chdir("C:/Users/user/github/")
+
 import warnings
 warnings.filterwarnings("ignore") #This is temporary, toggle this on for presentation
 mask = readRaster("e:\\data\\droughtindices\\masks\\nad83\\mask4.tif",1,-9999)[0]
@@ -137,8 +139,8 @@ for i in indices:
             prfdf = prfdf.append(rowdict,ignore_index=True)
             print(str(iteration) + " / " + str(totaliterations) +"  |  " + str(round(iteration/totaliterations,2)*100) + "%")
 
-
+#prfdf = pd.read_csv("C:\\Users\\user\\Github\\data\\PRFIndex_specs.csv")
 prfdf.columns = ['DI', 'AY', 'ICOV', 'S', 'TS', 'MAX($)',
        'MINP($)', 'MEDP($)', 'MEANP($)', 'PSD', 'MOPSD', 'MEANPCF',
        'SDPCF', 'MOSDPCF', 'MEANPF', 'MOSDPF']
-prfdf.to_csv("C:\\Users\\user\\Github\\PRF-ALTIND\\data\\PRFIndex_specs.csv")
+prfdf.to_csv("C:\\Users\\user\\Github\\data\\PRFIndex_specs.csv", index = False)
