@@ -41,6 +41,7 @@ source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities"]'
 # For the datatable at the bottom
 datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
 
+
 ############################# Set Scales by Signal ##########################################################################
 # Create a dictionary that finds the max values for each strike level and return type
 scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
@@ -237,18 +238,18 @@ dfcols = [{'label':"DI: Drought Index", 'value': 1},
          { 'label':"S: Strike" , 'value': 4},
 #         { 'label':" B.R.: Baseline Year Range", 'value': 5},
 #         { 'label':"S.R.: Study Year Range", 'value': 6},
-         { 'label':"TS: Temporal Scale", 'value': 7},
-         { 'label':"MAXP($): Max Payment", 'value': 8},
-         { 'label':"MINP($): Minimum Payment", 'value': 9},
-         { 'label':"MEDP($): Median Payment", 'value': 10},
-         { 'label':"MEANP($): Mean Payment", 'value': 11},
-         { 'label':"SDP: Payment Standard Deviation", 'value': 12},
-         { 'label':"MOSDP: Monthly Payment Standard Deviation", 'value': 13},
-         { 'label':"MEANPCF: Mean Payment Calculation Factor", 'value': 14},
-         { 'label':"SDPCF: Payment Calculation Factor Standard Deviation", 'value': 15},
-         { 'label':"MOSDPCF: Monthly Payment Calculation Factor Standard Deviation", 'value': 16},
-         { 'label':"MEANPF: Mean Payout Frequency", 'value': 17},
-         { 'label':"MOSDPF: Monthly Payout Frequency Standard Deviation", 'value': 18}]
+         { 'label':"TS: Temporal Scale", 'value': 5},
+         { 'label':"MAXP($): Max Payment", 'value': 6},
+         { 'label':"MINP($): Minimum Payment", 'value': 7},
+         { 'label':"MEDP($): Median Payment", 'value': 8},
+         { 'label':"MEANP($): Mean Payment", 'value': 9},
+         { 'label':"SDP: Payment Standard Deviation", 'value': 10},
+         { 'label':"MOSDP: Monthly Payment Standard Deviation", 'value': 11},
+         { 'label':"MEANPCF: Mean Payment Calculation Factor", 'value': 12},
+         { 'label':"SDPCF: Payment Calculation Factor Standard Deviation", 'value': 13},
+         { 'label':"MOSDPCF: Monthly Payment Calculation Factor Standard Deviation", 'value': 14},
+         { 'label':"MEANPF: Mean Payout Frequency", 'value': 15},
+         { 'label':"MOSDPF: Monthly Payout Frequency Standard Deviation", 'value': 16}]
 
 # Create Coordinate Index - because I can't find the array position in the
 # click event!
@@ -370,7 +371,7 @@ app.layout = html.Div(
 #                            children = 'Loading Project',
 #                            type='button'),
                 html.Button(id = 'description_button',
-                            children = 'Project Description',
+                            children = 'Project Description (Click)',
                             title = description,
                             type='button'),
             ],
@@ -568,7 +569,7 @@ app.layout = html.Div(
                         html.H4('Summary Statistics'),
                         html.H5("Column Key"),
                         dcc.Dropdown(options = dfcols,
-                                     placeholder = "Acronym: Description"),
+                                     placeholder = "Acronym: Description (Click)"),
                         dt.DataTable(
                              rows = datatable,
                              id = "summary_table",
@@ -711,7 +712,7 @@ def update_mapinfo(signal):
     signal = json.loads(signal)
     strike_level = signal[3]
         # Description for Info Button:
-    mapinfo = (" This map shows the average amount of payout potential at each of the available "
+    mapinfo = (" Click the map for local information. This shows the average amount of payout potential at each of the available "
                "grid cells using the experimental index insurance program with a 50% allocation of "
                "total protection to each insurance interval  from a hypothetical policy on a 500 "
                "acre ranch at the "+ str(int(strike_level*100)) + "% Strike Level and 100% "
@@ -1066,7 +1067,7 @@ def makeTrendBar(clickData,signal):
             y=0.95,
             font = dict(size = 17,color = "#000000"),
             showarrow=False,
-            bgcolor = "#e6efbf",
+            bgcolor = "#eee",
             xref="paper",
             yref="paper"
         )
@@ -1215,7 +1216,7 @@ def makeSeries(clickData,signal):
             y=0.95,
             font = dict(size = 17,color = "#000000"),
             showarrow=False,
-            bgcolor = "#e6efbf",
+            bgcolor = "#eee",
             xref="paper",
             yref="paper"
         )
@@ -1232,7 +1233,7 @@ def makeSeries(clickData,signal):
             y=0.95,
             font = dict(size = 17,color = "#000000"),
             showarrow=False,
-            bgcolor = "#e6efbf",
+            bgcolor = "#eee",
             xref="paper",
             yref="paper"
         )
