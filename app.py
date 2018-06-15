@@ -376,10 +376,12 @@ app.layout = html.Div(
                             type='button'),
             ],
             className='row' ,
-            style = {'font-weight':'bold',
+            style = {
+                    'font-weight':'bold',
                      'text-align':'center',
                      'margin-top':'40',
-                     'margin-bottom':'40'}
+                     'margin-bottom':'40'
+                     }
         ),
             html.Div(
                     [
