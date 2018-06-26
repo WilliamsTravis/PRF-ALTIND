@@ -308,8 +308,8 @@ app.layout = html.Div(
                     src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/earthlab.png?raw=true",
                     className='one columns',
                     style={
-                        'height': '75',
-                        'width': '200',
+                        'height': '40',
+                        'width': '100',
                         'float': 'right',
                         'position': 'static'
                         },
@@ -321,8 +321,8 @@ app.layout = html.Div(
                     src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/wwa_logo2015.png?raw=true",
                     className='one columns',
                     style={
-                        'height': '100',
-                        'width': '300',
+                        'height': '50',
+                        'width': '150',
                         'float': 'right',
                         'position': 'static',
                         },
@@ -334,8 +334,8 @@ app.layout = html.Div(
                     src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/nidis.png?raw=true",
                     className='one columns',
                     style={
-                        'height': '100',
-                        'width': '400',
+                        'height': '50',
+                        'width': '200',
                         'float': 'right',
                         'position': 'relative',
                         },
@@ -347,8 +347,8 @@ app.layout = html.Div(
                     src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/cires.png?raw=true",
                     className='one columns',
                     style={
-                        'height': '100',
-                        'width': '200',
+                        'height': '50',
+                        'width': '100',
                         'float': 'right',
                         'position': 'relative',
                         'margin-right':'20',
@@ -839,14 +839,15 @@ def makeMap(signal):
     grid2[np.isnan(grid2)] = 0
     pdf['grid'] = grid2[pdf['gridy'],pdf['gridx']]
     pdf['grid'] = pdf['grid'].apply(int).apply(str)
-#    pdf['grid'] = pdf['grid'].apply(str)
     pdf['data'] = pdf['data'].astype(float).round(3)
     pdf['printdata'] = "GRID #: " + pdf['grid'] +"<br>Data: " + pdf['data'].apply(str)
+    
     # below adds commas but takes too long
-#    pdf['printdata'] =  "<br>Data: "+datasymbol+pdf.apply(lambda x: x['data'] if pd.isnull(x['data']) else "{:,}".format(round(x['data'])), axis=1)#.apply(str)
+    # pdf['printdata'] =  "<br>Data: "+datasymbol+pdf.apply(lambda x: x['data'] if pd.isnull(x['data']) else "{:,}".format(round(x['data'])), axis=1)#.apply(str)
+
     groups = pdf.groupby(("latbin", "lonbin"))
     df_flat = pdf.drop_duplicates(subset=['latbin', 'lonbin'])
-    df= df_flat[np.isfinite(df_flat['data'])]
+    df = df_flat[np.isfinite(df_flat['data'])]
 
     # Add Grid IDs
     colorscale = [[0, 'rgb(2, 0, 68)'], [0.25, 'rgb(17, 123, 215)'],# Make darker (pretty sure this one)
