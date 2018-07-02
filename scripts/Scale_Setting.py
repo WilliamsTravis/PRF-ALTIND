@@ -7,41 +7,79 @@ Created on Sat Jun  9 16:12:57 2018
 
 ############################# Set Scales by Signal ##########################################################################
 import os  
-os.chdir("C:/Users/user/github/PRF-ALTIND")
+os.chdir("C:/Users/user/github/")
 from functions import *
 import warnings
 warnings.filterwarnings("ignore") #This is temporary, toggle this on for presentation
-mask = readRaster("e:\\data\\droughtindices\\masks\\nad83\\mask4.tif",1,-9999)[0]
-grid = readRaster("e:\\data\\droughtindices\\rma\\nad83\\prfgrid.tif",1,-9999.)[0]
+
+# Load mask 
+with np.load("data\\mask.npz") as data:
+    mask = data.f.mask
+    data.close()
+#mask = readRaster("e:\\data\\droughtindices\\masks\\nad83\\mask4.tif",1,-9999)[0]
+
+# Load RMA grid
+with np.load("data\\prfgrid.npz") as data:
+    grid = data.f.grid
+    data.close()
+#grid = readRaster("e:\\data\\droughtindices\\rma\\nad83\\prfgrid.tif",1,-9999.)[0]
 
 # Establish parameters lists.
 # Index paths
-indices = ['e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\',
- 'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\',
- 'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\',
- 'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\',
- 'e:\\data\\droughtindices\\spi\\nad83\\1month\\',
- 'e:\\data\\droughtindices\\spi\\nad83\\2month\\',
- 'e:\\data\\droughtindices\\spi\\nad83\\3month\\',
- 'e:\\data\\droughtindices\\spi\\nad83\\6month\\',
- 'e:\\data\\droughtindices\\spei\\nad83\\1month\\',
- 'e:\\data\\droughtindices\\spei\\nad83\\2month\\',
- 'e:\\data\\droughtindices\\spei\\nad83\\3month\\',
- 'e:\\data\\droughtindices\\spei\\nad83\\6month\\']
+#indices = ['e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\',
+# 'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\',
+# 'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\',
+# 'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\',
+# 'e:\\data\\droughtindices\\spi\\nad83\\1month\\',
+# 'e:\\data\\droughtindices\\spi\\nad83\\2month\\',
+# 'e:\\data\\droughtindices\\spi\\nad83\\3month\\',
+# 'e:\\data\\droughtindices\\spi\\nad83\\6month\\',
+# 'e:\\data\\droughtindices\\spei\\nad83\\1month\\',
+# 'e:\\data\\droughtindices\\spei\\nad83\\2month\\',
+# 'e:\\data\\droughtindices\\spei\\nad83\\3month\\',
+# 'e:\\data\\droughtindices\\spei\\nad83\\6month\\']
 
 # Index names for the table
-indexnames = {'e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\': 'NOAA',
-            'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\': 'PDSI',
-          'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\': 'PDSIsc',
-          'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\': 'PDSIz',
-          'e:\\data\\droughtindices\\spi\\nad83\\1month\\':'SPI-1',
-          'e:\\data\\droughtindices\\spi\\nad83\\2month\\':'SPI-2',
-          'e:\\data\\droughtindices\\spi\\nad83\\3month\\':'SPI-3',
-          'e:\\data\\droughtindices\\spi\\nad83\\6month\\':'SPI-6',
-          'e:\\data\\droughtindices\\spei\\nad83\\1month\\': 'SPEI-1', 
-          'e:\\data\\droughtindices\\spei\\nad83\\2month\\': 'SPEI-2', 
-          'e:\\data\\droughtindices\\spei\\nad83\\3month\\': 'SPEI-3', 
-          'e:\\data\\droughtindices\\spei\\nad83\\6month\\': 'SPEI-6'}
+#indexnames = {'e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\': 'NOAA',
+#            'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\': 'PDSI',
+#          'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\': 'PDSIsc',
+#          'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\': 'PDSIz',
+#          'e:\\data\\droughtindices\\spi\\nad83\\1month\\':'SPI-1',
+#          'e:\\data\\droughtindices\\spi\\nad83\\2month\\':'SPI-2',
+#          'e:\\data\\droughtindices\\spi\\nad83\\3month\\':'SPI-3',
+#          'e:\\data\\droughtindices\\spi\\nad83\\6month\\':'SPI-6',
+#          'e:\\data\\droughtindices\\spei\\nad83\\1month\\': 'SPEI-1', 
+#          'e:\\data\\droughtindices\\spei\\nad83\\2month\\': 'SPEI-2', 
+#          'e:\\data\\droughtindices\\spei\\nad83\\3month\\': 'SPEI-3', 
+#          'e:\\data\\droughtindices\\spei\\nad83\\6month\\': 'SPEI-6'}
+    
+# Establish parameters lists.
+# Index paths
+indices = ['data\\indices\\noaa_arrays.npz',
+             'data\\indices\\pdsi_arrays.npz',    
+             'data\\indices\\pdsisc_arrays.npz',
+             'data\\indices\\pdsiz_arrays.npz',
+             'data\\indices\\spi1_arrays.npz',
+             'data\\indices\\spi2_arrays.npz',
+             'data\\indices\\spi3_arrays.npz',
+             'data\\indices\\spi6_arrays.npz',
+             'data\\indices\\spei1_arrays.npz', 
+             'data\\indices\\spei2_arrays.npz',
+             'data\\indices\\spei3_arrays.npz',
+             'data\\indices\\spei6_arrays.npz']
+
+indexnames = {'data\\indices\\noaa_arrays.npz':'NOAA',
+             'data\\indices\\pdsi_arrays.npz':'PDSI',    
+             'data\\indices\\pdsisc_arrays.npz':'PDSIsc',
+             'data\\indices\\pdsiz_arrays.npz':'PDSIz',
+             'data\\indices\\spi1_arrays.npz':'SPI-1',
+             'data\\indices\\spi2_arrays.npz':'SPI-2',
+             'data\\indices\\spi3_arrays.npz':'SPI-3',
+             'data\\indices\\spi6_arrays.npz':'SPI-6',
+             'data\\indices\\spei1_arrays.npz':'SPEI-1', 
+             'data\\indices\\spei2_arrays.npz':'SPEI-2',
+             'data\\indices\\spei3_arrays.npz':'SPEI-3',
+             'data\\indices\\spei6_arrays.npz':'SPEI-6'}
 
 # Lists of other parameters
 actuarialyear = [2017,2018]
@@ -54,10 +92,15 @@ columns = ["index",
            "actuarialyear",
            "strike",
            "max_indemnities",
+           "min_indemnities",
            "max_frequencies",
+           "min_frequencies",
            "max_pcfs",
+           "min_pcfs",
            "max_nets",
-           "max_lossratios"]
+           "min_nets",
+           "max_lossratios",
+           "min_lossratios"]
     
 # Empty Data Frame
 prfdf = pd.DataFrame(columns = columns)
@@ -72,7 +115,8 @@ totaliterations = len(indices)*len(actuarialyear)*len(strikes)
 for i in indices:
     prfdf.to_csv("data\\PRFIndex_specs.csv")
     print(i)
-    indexlist = readRasters2(i,-9999)[0]
+#    indexlist = readRasters2(i,-9999)[0]
+    indexlist = readArrays(i)
     indexlist = [[a[0],a[1]*mask] for a in indexlist]
     name = indexnames.get(i)                            
     for ay in actuarialyear:
@@ -86,28 +130,33 @@ for i in indices:
 
         premiums = readRasters2(premiumpath,-9999.)[0] #[0] because we can use the original geometry to write these to rasters.     
         bases = readRasters2(basepath,-9999.)[0]     
-        for strike in strikes:
+        for s in strikes:
             print("Choosing Strike Level..." + str(s))
             iteration += 1 
             print("Building Dataset...")
             data = indexInsurance(indexlist,grid, premiums, bases, ay, [2000,2017], [1948,2016], 1, 
-                                   strike, 500, .5,difference = 0, scale = True,plot = False)
+                                   s, 500, .5,difference = 0, scale = True,plot = False)
 
                 
             # Return Order:
             #producerpremiums, indemnities, frequencies, pcfs, nets, lossratios, meanppremium, meanindemnity, 
             #             frequencysum, meanpcf, net, lossratio
             maxpay = np.nanmax(data[7]) # INDEMNITY
+            minpay = np.nanmin(data[7])
             maxfre = np.nanmax(data[8])
+            minfre = np.nanmin(data[8])
             maxpcf = np.nanmax(data[9]) 
+            minpcf = np.nanmin(data[9]) 
             maxnet = np.nanmax(data[10])
+            minnet = np.nanmin(data[10])
             maxloss = np.nanmax(data[11])
+            minloss = np.nanmin(data[11])
             
             # Create a row for the df! Pay attention to order
             print("Appending to dataframe...")
-            row = [name,ay,strike,maxpay,maxfre,maxpcf,maxnet,maxloss]
+            row = [name,ay,s,maxpay,minpay,maxfre,minfre,maxpcf,minpcf,maxnet,minnet,maxloss,minloss]
             rowdict = dict(zip(columns,row))
             prfdf = prfdf.append(rowdict,ignore_index=True)
             print(str(iteration) + " / " + str(totaliterations) +"  |  " + str(round(iteration/totaliterations,2)*100) + "%")
 
-prfdf.to_csv("C:\\Users\\user\\Github\\PRF-ALTIND\\data\\PRF_Y_Scales.csv",index = False)
+prfdf.to_csv("data\\PRF_Y_Scales.csv",index = False)

@@ -1633,6 +1633,28 @@ def readRasters2(rasterpath,navalue = -9999):
         name = str.upper(names[i][:-4]) #the file name excluding its extention (may need to be changed if the extension length is not 3)
         alist.append([name,array]) # It's confusing but we need some way of holding these dates. 
     return(alist,geometry,arrayref)
+    
+###########################################################################
+###################### Read Arrays from NPZ or NPY format #################
+###########################################################################
+def readArrays(path):
+    '''
+    This will only work if the date files are in the same folder as the .np or .npz
+        Otherwise it outputs the same results as the readRaster functions. 
+        No other parameters required. 
+    '''
+    path = 'data\\indices\\noaa_arrays.npz'
+    datepath = path[:-10]+"dates"+path[-4:]
+    with np.load(path) as data:
+        arrays = data.f.arr_0
+        data.close()
+    with np.load(datepath) as data:
+        dates = data.f.arr_0
+        data.close()
+        dates = [str(d) for d in dates]
+    arraylist = [[dates[i],arrays[i]] for i in range(len(arrays))]
+    return(arraylist)
+    
 ###########################################################################
 ############## Little Standardization function for differenct scales ######
 ###########################################################################  

@@ -45,6 +45,8 @@ datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
 ############################# Set Scales by Signal ##########################################################################
 # Create a dictionary that finds the max values for each strike level and return type
 scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
+scaletable['index'] = scaletable['index'].str.lower()
+scaletable['index'] = scaletable['index'].str.replace("-","")
 
 ############################# Option #2: Calculate Payouts ##################################################################
 ########################## Load Index Arrays #################################################################################
@@ -288,7 +290,7 @@ layout = dict(
     title='<b>Potential Payout Frequencies</b>',
     mapbox=dict(
         accesstoken=mapbox_access_token,
-        style="light",
+        style="satellite-streets",#'light', 'basic', 'outdoors', 'satellite', or 'satellite-streets'
         center=dict(
             lon= -95.7,
             lat= 37.1
@@ -803,6 +805,7 @@ def makeMap(signal):
 
     # Get signal for labeling
     signal = json.loads(signal)
+    indexname = signal[0]
     return_type = signal[4]
     strike_level = signal[3]
     date1 = signal[2][0]
@@ -855,21 +858,34 @@ def makeMap(signal):
                     [0.6, 'rgb(249, 210, 41)'], [1.0, 'rgb(255, 249, 0)']] # Make darker
 
 # Get Y-scale
-    if 'nets' in return_type:
-        signal[4] = 'premiums'
-        signal2 = json.dumps(signal)
-        df2 = retrieve_data(signal2)
-        arrays = [a[1] for a in df2]
-        ylow = -np.nanmax(arrays)
-    else:
-        ylow = 0
+    # Copy Scaletable
+    st = scaletable#[scaletable['index'] == indexname]
+    maxy = max(st['max_'+return_type])
+    miny = min(st['min_'+return_type])
 
-    if return_type != "premiums":
-        col = "max_"+return_type
-        maxy = max(scaletable[col])
-        maxy =  100 if return_type == "frequencies" else maxy
-    else:
-        maxy = 2000
+    # For nets the minimum can be negative....
+#    if 'nets' in return_type:
+#        signal[4] = 'premiums'
+#        signal2 = json.dumps(signal)
+#        df2 = retrieve_data(signal2)
+#        arrays = [a[1] for a in df2]
+#        ylow = -np.nanmax(arrays)
+#    else:
+#        ylow = 0
+
+#    if return_type != "premiums":
+#        col = "max_"+return_type
+#        maxy = max(scaletable[col])
+#        maxy =  100 if return_type == "frequencies" else maxy
+#    else:
+#        maxy = 2000
+#        
+#    if return_type == "frequencies":
+#        col = "max_"+return_type
+#        maxy = max(scaletable[col])
+#        maxy =  100 if return_type == "frequencies" else maxy
+#    else:
+#        maxy = 2000
         
 # Create the scattermapbox object
     data = [
@@ -882,9 +898,9 @@ def makeMap(signal):
         hoverinfo = 'text',
         marker = dict(
             colorscale = colorscale,
-            cmin = 0,
+            cmin = miny,
             color = df['data'],
-            cmax = maxy*.55,
+            cmax = maxy,
             opacity=0.85,
             size = 5,
             colorbar=dict(
