@@ -45,8 +45,6 @@ datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
 ############################# Set Scales by Signal ##########################################################################
 # Create a dictionary that finds the max values for each strike level and return type
 scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
-scaletable['index'] = scaletable['index'].str.lower()
-scaletable['index'] = scaletable['index'].str.replace("-","")
 
 ############################# Option #2: Calculate Payouts ##################################################################
 ########################## Load Index Arrays #################################################################################
