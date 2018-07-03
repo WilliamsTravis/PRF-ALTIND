@@ -857,9 +857,14 @@ def makeMap(signal):
 
 # Get Y-scale
     # Copy Scaletable
-    st = scaletable#[scaletable['index'] == indexname]
-    maxy = max(st['max_'+return_type])
-    miny = min(st['min_'+return_type])
+    if return_type != "premiums":
+        st = scaletable#[scaletable['index'] == indexname]
+        maxy = max(st['max_'+return_type])
+        miny = min(st['min_'+return_type])
+    else:
+        miny = 0
+        maxy = 1700
+    
 
     # For nets the minimum can be negative....
 #    if 'nets' in return_type:
