@@ -464,7 +464,9 @@ producerpremiums, indemnities, frequencies, pcfs,
 		   strike level to even more closely approximate the expected budget that the actuarial rates suggest.
 		   In this way, each location would end up with very similar average payments, but these would differ
 		   in timing.  
-		    
+		   
+	      6) I would also like to add a base county land value map. The 98th meridian shows up again in the rainfall 
+		   indemnities, and I don't think this due to premiums. 
                     
     **** UNDER CONSTRUCTION ****
     

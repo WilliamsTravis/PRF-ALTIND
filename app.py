@@ -480,7 +480,7 @@ app.layout = html.Div(
                 # Other Selections
                 html.Div(# Four-a
                     [
-                        html.P('Guarantee Level'),
+                        html.P('Strike Level'),
                         dcc.RadioItems(
                             id='strike_level',
                             options=strikes,
