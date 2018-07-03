@@ -392,36 +392,45 @@ def indexInsurance(indexlist,grid, premiums, bases, actuarialyear, studyears, ba
         ARGUMENTS:                      DESCRIPTION                                                 OBJECT              
                                                                                                     TYPE
             
-            rasterpath               - Path to list of alternate climate files for index            (rasters)
-            startyear                - Start year for the payout calculation                        (integer)
-            baselineyear             - Year back to which the monthly average values will be        (integer)
-                                          indexed (if needed)
-            maskpath                 - Path to a mask of the CONUS for indices with the 
-                                            the Great Lakes, Cananda, or Mexico                     (raster)
-            gridpath                 - Path to the USDA Risk Management Agency Grid                 (raster)
-            actuarial                - Path to folder with all actuarial arrays                     (rasters)
+            indexlist                - A list of arrays representing a timeseries of drought        (arrays)
+					   index raster datasets.
+					   Format: ["INDEXNAME_YYYYMM",2D Numpy Array]
+	    grid                     - RMA Insurance grid array                                     (array)
+	    premiums                 - List of Premiums arrays				            (arrays)
+	    bases 		     - List of County base value arrays                             (arrays)
+            studyears                - Start and end year for the payout calculation                (integers)
+            baselineyears            - Years between which the monthly average values will be       (integers)
+                                          indexed 
             productivity             - Number signifying productivity ratio                         (float)
             strike                   - Number signifying gaurantee level that triggers payouts      (float)
             acres                    - Number of acres per cell                                     (integer)
             allocation               - Monthly Allocation                                           (float)
-            adjustit                 - True if the data is already binned into 11 intervals         (boolean)
-            standardizeit             - True if the scale needs no min/max standardization           (boolean)
-                                       (This might be important for certain drought indices)
-            indexit                 - True if the climate variable is already normalized to        (boolean)
-                                           its baseline values
+	    difference               - For the old plotting system (which output to plot)           (integer)
+	    scale                    - Whether or not to scale payments                             (integer)
+						1 = yes, 0 = no
+	    plot 		     - Whether or not to plot with the old system (matplotlib)      (True/False)
+	    
             
         
         RETURNS:
             
             insurance_package_all
-                totalsubsidies       - List of total subsidy values in every interval/year          (list of arrays)
                 producerpremiums     - List of producer premium values in every interval/year       (list of arrays)
                 indemnities          - List of indemnity values in every interval/year              (list of arrays)
-                
-            insurance_pacakge_average 
-                meansubsidy          - Average 'monthly' total subsidies for each grid cell         (array)
+		frequencies	     - List of single payout events				    (list of arrays)
+		pcfs                 - List of payment calculation factors 			    (list of arrays)
+		nets                 - List of net payouts			                    (list of arrays)
+		lossratios           - List of unsubsidized lossratios				    (list of arrays)
                 meanppremium         - Average 'monthly' producer premiums for each grid cell       (array)
                 meanindemnity        - Average 'monthly' indemnity for each grid cell               (array)
+		frequencysum         - Sum of 'monthly' payout events for each grid cell            (array)
+		meanpcf              - Average 'monthly' payment calculation factors for each cell  (array)
+		net		     - Average 'monthly' net payments after producer premiums       (array)
+ 		lossratio            - Average 'monthly' unsusidized loss ratio                     (array)
+    
+producerpremiums, indemnities, frequencies, pcfs, 
+                             nets, lossratios, meanppremium, meanindemnity, 
+                             frequencysum, meanpcf, net, lossratio]
     
         THINGS TO DO/Consider:
 
@@ -430,25 +439,32 @@ def indexInsurance(indexlist,grid, premiums, bases, actuarialyear, studyears, ba
             2) Some stipulations on calculating new indices
                 a) The RMA is calculated from 1948 up to two years before the crop year, though the
                     baseline years may be changed to check for effects
-                b) Most drought indices are already indexed to local conditions, though it is 
-                    possible to reindex them with the method used by the RMA. 
-                c) There are multiple methods of calculation to compensate for various index value
-                    distributions. Be careful to choose the appropriate standardization and indexing
-                    options for each index. 
+                c) There are multiple methods of calculation to compensate for drought index value
+                    distributions, particularly very large negative values. Be careful to choose a 
+		    consistent method to each. For now outliers below 3 standard deviations are 
+		    asigned that value. 
                 d) So far this is only functional for grazing operations, actuarial rates for 
                     haying are available but need to be rasterized before they can be used here.
-                    
-            3) Simplify the parameters:
-                a) actuarial paths can be coded in for the github package. I can set the option
-                    for which year more simply this way. 
-                b) the methodology can be simplified by removing the cryptic method numbers and 
-                    setting the interval adjustment standardization and indexing options to 
-                    positive statements. 
-                c) the return options can be changed to intuitive strings as well;
-                        'payouts',netpayouts','lossratios'
-                        
+		c) The payment calculation factor and frequency data do not incorporate the availability
+		    restrictions in the southeast. The payout data does though, so that is why there
+		    is such a large discrepancy.  
+                
             3) Insurable interest is apparently included in the original cacluation, what is this 
                     and how do I incorporate it?
+
+	    4) Go back and add the EDDI's back in. There is interest in this and I might be able to ameliorate
+		    some of the issues with payment scaling.
+
+	    5) Originally, I wanted to scale payments with as little alteration of the original index as possible. 
+		   The currently scaling procedure involves the ratio between both total payouts of drought and 
+		   rainfall indices, and the average ratio between strike levels. Now, I am realizing this is not
+		   suitably approximating the lower strike level payouts, which are necessarily smaller because of 
+		   highly normal value distribution of drought indices. If each were fit into the same potential 
+		   budget I ought to simply scale by strike level. I could also use scalars unique to each location and 
+		   strike level to even more closely approximate the expected budget that the actuarial rates suggest.
+		   In this way, each location would end up with very similar average payments, but these would differ
+		   in timing.  
+		    
                     
     **** UNDER CONSTRUCTION ****
     
@@ -458,7 +474,8 @@ def indexInsurance(indexlist,grid, premiums, bases, actuarialyear, studyears, ba
     ############## Establish some necessary pieces to the calculation #########
     ###########################################################################
     # This dictionary of column names is needed to match information from the actuarial rates to 
-        # the appropriate place and time. 
+        # the appropriate place and time. I do this to maintain readability of the original 
+	# data table. 
     colnames1 = {'Grid ID':'gridid','Guarantee Level':'strike','Grazing Interval\n Jan-Feb':'g1',\
     'Grazing Interval\n Feb-Mar':'g2', 'Grazing Interval\n Mar-Apr':'g3','Grazing Interval\n Apr-May':'g4',\
     'Grazing Interval\n May-Jun':'g5','Grazing Interval\n Jun-Jul':'g6','Grazing Interval\n Jul-Aug':'g7',\
