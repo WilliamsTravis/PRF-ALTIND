@@ -19,12 +19,9 @@ else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
 
-
 #############################################################################################################################
-
 from functions import *
 
-################# Test with Local Drive or Online with AWS files? ###########################################################
 # In[]:
 ############################ Set up initial Signal and data #################################################################
 import warnings
@@ -138,10 +135,8 @@ seriesinfo = ''
 # Create Dash Application Object
 app = dash.Dash(__name__)
 
-# I am using a cascading style sheet from one of the DASH examples (oil and gas extraction in New York)
-# I really need to get my own stylesheet, if anyone know how to do this...
-# Check this site: https://www.w3.org/Style/CSS/Overview.en.html
-app.css.append_css({'external_url': 'https://cdn.rawgit.com/plotly/dash-app-stylesheets/2d266c578d2a6e8850ebce48fdb52759b2aef506/stylesheet-oil-and-gas.css'})  # noqa: E501
+# The stylesheet is based one of the DASH examples (oil and gas extraction in New York)
+app.css.append_css({'external_url': 'https://rawgit.com/WilliamsTravis/PRF-USDM/master/dash-stylesheet.css'})
 
 # Create server object
 server = app.server
@@ -228,6 +223,14 @@ strikes = [{'label':'70%','value':.70},
           {'label':'85%','value':.85},
           {'label':'90%','value':.90}]
 
+# Map types'light', 'basic', 'outdoors', 'satellite', or 'satellite-streets'
+maptypes = [{'label':'Light','value':'light'},
+            {'label':'Dark','value':'dark'},
+            {'label':'Basic','value':'basic'},
+            {'label':'Outdoors','value':'outdoors'},
+            {'label':'Satellite','value':'satellite'},
+            {'label':'Satellite Streets','value':'satellite-streets'}]
+
 # Year Markes for Slider
 years = [int(y) for y in range(2000,2018)]
 yearmarks =dict(zip(years,years))
@@ -293,7 +296,7 @@ layout = dict(
             lon= -95.7,
             lat= 37.1
         ),
-        zoom=3,
+        zoom=2,
     )
 )
 
@@ -499,14 +502,26 @@ app.layout = html.Div(
                     ],
                     className='four columns'
                 ),
+                # Map Selector
+                html.Div([
+                        html.P("Map Type"),
+                        dcc.Dropdown(
+                                id = "map_type",
+                                value = "light",
+                                options = maptypes, #'light', 'dark','basic', 'outdoors', 'satellite', or 'satellite-streets'   
+                                multi = False
+                                    )   
+                    ],
+                    className = 'four columns'
+                ),
                ],
                 className = 'row'
             ),
         # Hidden DIV to store the signal
         html.Div(id='signal',
                  style={'display': 'none'}
-#                 children = ['noaa',2018,[2000, 2017],[1948, 2016], 0.8, 500,"indemnities"]
             ),
+
         # Single Interactive Map
         html.Div(#Five...If any one sees this, what is wrong with the alignment! Just fix it, go ahead I don't care this is ridiculous
             [
@@ -676,9 +691,10 @@ def retrieve_data(signal):
                State('actuarial_year','value'),
                State('year_slider','value'),
                State('strike_level','value'),
-               State('return_type','value')])
-def compute_value(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype):
-    signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype])
+               State('return_type','value'),
+               State('map_type','value')])
+def compute_value(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype,maptype):
+    signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype,maptype])
     return signal
 
 
@@ -783,20 +799,22 @@ def update_seriesinfo(signal,clickData):
                "productivity level.")
 
     return seriesinfo
+
+
 # In[]
 ###############################################################################
 ######################### Graph Builders ######################################
 ###############################################################################
 @app.callback(Output('main_graph', 'figure'),
-              [Input('signal','children')])
-def makeMap(signal):
+              [Input('signal','children')],
+              [State('main_graph','clickData')])           
+def makeMap(signal,clickData):
     """
     This will be the map itself, it is not just for changing maps.
         In order to map over mapbox we are creating a scattermapbox object.
     """
     # Clear memory space -- ??
-    #print(gc.garbage) # https://rushter.com/blog/python-garbage-collector/
-    #gc.collect(2)
+    
 
     # Get data
     df = retrieve_data(signal)
@@ -809,6 +827,7 @@ def makeMap(signal):
     date1 = signal[2][0]
     date2 = signal[2][1]
     actuarialyear = signal[1]
+    maptype = signal[5]
 
 #    # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
@@ -933,13 +952,21 @@ def makeMap(signal):
     else:
         calc = "Average "
 
-    layout['title'] = ("<b>" +indexnames.get(signal[0]) +"<br>" +calc+returndict.get(return_type)
-                        +" | " +str(signal[2][0]) + " to " + str(signal[2][1])+ " | "
+    layout['title'] = ("<b>" + indexnames.get(signal[0]) + "<br>" + calc+returndict.get(return_type)
+                        + " | " +str(signal[2][0]) + " to " + str(signal[2][1]) + " | "
                         + str(int(strike_level*100)) + "% Strike Level</b>")
     layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
-    # Seventh wrap the data and layout into one
+    layout['mapbox']=dict(
+        accesstoken=mapbox_access_token,
+        style=maptype,#'light', 'basic', 'outdoors', 'satellite', or 'satellite-streets'
+        center=dict(
+            lon= -95.7,
+            lat= 37.1
+        ),
+        zoom=2,
+        )
+          
     figure = dict(data=data, layout=layout)
-#    return {'figure':figure,'info': index_package_all}
     return figure
 
 
