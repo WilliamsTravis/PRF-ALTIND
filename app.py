@@ -143,8 +143,10 @@ app = dash.Dash(__name__)
 # I am using a cascading style sheet from one of the DASH examples (oil and gas extraction in New York)
 # I really need to get my own stylesheet, if anyone know how to do this...
 # Check this site: https://www.w3.org/Style/CSS/Overview.en.html
-#app.css.append_css({'external_url': 'https://cdn.rawgit.com/plotly/dash-app-stylesheets/2d266c578d2a6e8850ebce48fdb52759b2aef506/stylesheet-oil-and-gas.css'})  # noqa: E501
+app.css.append_css({'external_url': 'https://cdn.rawgit.com/plotly/dash-app-stylesheets/2d266c578d2a6e8850ebce48fdb52759b2aef506/stylesheet-oil-and-gas.css'})  # noqa: E501
 app.css.append_css({'external_url': "https://github.com/WilliamsTravis/PRF-ALTIND/blob/master/dash-stylesheet.css"})
+
+
 # Create server object
 server = app.server
 
