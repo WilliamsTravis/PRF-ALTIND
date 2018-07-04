@@ -19,12 +19,9 @@ else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
 
-
 #############################################################################################################################
-
 from functions import *
 
-################# Test with Local Drive or Online with AWS files? ###########################################################
 # In[]:
 ############################ Set up initial Signal and data #################################################################
 import warnings
@@ -140,12 +137,8 @@ seriesinfo = ''
 # Create Dash Application Object
 app = dash.Dash(__name__)
 
-# I am using a cascading style sheet from one of the DASH examples (oil and gas extraction in New York)
-# I really need to get my own stylesheet, if anyone know how to do this...
-# Check this site: https://www.w3.org/Style/CSS/Overview.en.html
-#app.css.append_css({'external_url': 'https://cdn.rawgit.com/plotly/dash-app-stylesheets/2d266c578d2a6e8850ebce48fdb52759b2aef506/stylesheet-oil-and-gas.css'})  # noqa: E501
-app.css.append_css({'external_url': "https://github.com/WilliamsTravis/PRF-ALTIND/blob/master/dash-stylesheet.css"})
-
+# The stylesheet is based one of the DASH examples (oil and gas extraction in New York)
+app.css.append_css({'external_url': 'https://rawgit.com/WilliamsTravis/PRF-USDM/master/dash-stylesheet.css'})
 
 # Create server object
 server = app.server
