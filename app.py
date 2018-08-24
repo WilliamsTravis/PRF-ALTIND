@@ -866,7 +866,14 @@ def update_seriesinfo(signal,clickData):
                Input('main_graph','clickData'),
                Input('city_choice','value')])
 def gridStore(grid_choice,clickData,city_choice):
+    print(str(clickData))
     return json.dumps([grid_choice, clickData, city_choice])
+   
+#@app.callback(Output('grid_store', 'children'),
+#              [Input('main_graph','clickData')])
+#def gridStore(clickData):
+#    print(str(clickData))
+#    return json.dumps(clickData)
    
 @app.callback(Output('targetid_store', 'children'),
               [Input('grid_choice', 'value'),
@@ -944,11 +951,11 @@ def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
 ###############################################################################
 @app.callback(
                Output('main_graph', 'figure'),
-              [Input('signal','children')],
-#              [State('grid_store','children')]
-              [State('targetid_store','children')]
+              [Input('signal','children')]
+#              [State('grid_store','children'),
+#              [State('targetid_store','children')]
               )           
-def makeMap(signal,targetid):
+def makeMap(signal):
     """
     This will be the map itself, it is not just for changing maps.
         In order to map over mapbox we are creating a scattermapbox object.
@@ -971,8 +978,8 @@ def makeMap(signal,targetid):
 #        marker_x = grid_store[1]['points'][0]['lon']
 #        print("###################### Map Click Point: " + str([marker_x,marker_y]))
              
-    targetid = int(targetid)
-    print("Map Target ID: " + str(targetid))
+#    targetid = int(targetid)
+#    print("Map Target ID: " + str(targetid))
     # Get signal for labeling
     signal = json.loads(signal)
     indexname = signal[0]
