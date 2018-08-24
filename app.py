@@ -41,6 +41,7 @@ datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
 cities_df = pd.read_csv("cities.csv")
 cities = [{'label':cities_df['NAME'][i]+", "+ cities_df['STATE'][i],
            'value':cities_df['grid'][i]} for i in range(len(cities_df))]
+cities_df = cities_df.sort_values('POP',ascending = False)
 
 ############################# Set Scales by Signal ##########################################################################
 # Create a dictionary that finds the max values for each strike level and return type
@@ -1303,11 +1304,9 @@ def makeTrendBar(clickData,signal,grid_choice,targetid):
         )
             
             
-    incities = cities_df['NAME'][cities_df['grid']==targetid]+", "+cities_df['STATE'][cities_df['grid']==targetid]
-    label = ", ".join(list(incities))
     layout_count['title'] = ("<b>" +returndict.get(return_type)
                              + ' Monthly Trends <br> Grid ID: '
-                             + str(int(targetid)) + "<br>" + label + "</b>")
+                             + str(int(targetid)) + "</b>")
     layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
     layout_count['dragmode'] = 'select'
     layout_count['showlegend'] = False 
@@ -1476,8 +1475,15 @@ def makeSeries(clickData,signal,grid_choice,targetid):
             xref="paper",
             yref="paper"
         )
+            
     layout_count = copy.deepcopy(layout)
-    layout_count['title'] = "<b>" + return_label+' Time Series <br> Grid ID: ' + str(int(targetid)) +"</b>"
+
+
+    incities = cities_df['NAME'][cities_df['grid']==targetid]+", "+cities_df['STATE'][cities_df['grid']==targetid]
+    label = ", ".join(list(incities))         
+    layout_count['title'] = ("<b>" + return_label+
+                            ' Time Series <br> Grid ID: ' + 
+                                str(int(targetid)) + "<br>" + label + "</b>")
     layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
     layout_count['dragmode'] = 'select'
     layout_count['showlegend'] = False
