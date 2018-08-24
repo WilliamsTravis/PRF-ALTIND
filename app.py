@@ -949,8 +949,8 @@ def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
 ###############################################################################
 @app.callback(
                Output('main_graph', 'figure'),
-              [Input('signal','children'),
-              Input('grid_store','children')]
+              [Input('signal','children')],
+              [State('grid_store','children')]
 #              [State('targetid_store','children')]
               )           
 def makeMap(signal,grid_store):
