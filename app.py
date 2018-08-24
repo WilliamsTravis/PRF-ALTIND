@@ -866,9 +866,6 @@ def update_seriesinfo(signal,clickData):
                Input('main_graph','clickData'),
                Input('city_choice','value')])
 def gridStore(grid_choice,clickData,city_choice):
-    if city_choice is None:
-        city_choice = 24099
-    print("CITY CHOICE: " + str(city_choice))
     return json.dumps([grid_choice, clickData, city_choice])
    
 @app.callback(Output('targetid_store', 'children'),
@@ -917,13 +914,13 @@ def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
     # Determine which selection changed last. 
     print("################## Determining the element that changed the target ID ###########################")
 #    print("Old target ID: " + str(old_targetid))
-    if old_grid_choice != grid_choice:# or grid_choice != city_choice or grid_choice != click_choice:
-        print("grid_choice changed!")
-        targetid = grid_choice
-    elif old_click_choice != click_choice:# or click_choice != grid_choice or click_choice != city_choice:
+    if old_click_choice != click_choice:# or click_choice != grid_choice or click_choice != city_choice:
         print("clickData changed!")
         end_digit = clickData['points'][0]['text'].index("<")
         targetid = int(clickData['points'][0]['text'][8:end_digit])
+    elif old_grid_choice != grid_choice:# or grid_choice != city_choice or grid_choice != click_choice:
+        print("grid_choice changed!")
+        targetid = grid_choice
     elif old_city_choice != city_choice:# or city_choice != grid_choice or city_choice != click_choice:
         print("city_choice changed!")
         targetid = city_choice
@@ -948,10 +945,10 @@ def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
 @app.callback(
                Output('main_graph', 'figure'),
               [Input('signal','children')],
-              [State('grid_store','children')]
-#              [State('targetid_store','children')]
+#              [State('grid_store','children')]
+              [State('targetid_store','children')]
               )           
-def makeMap(signal,grid_store):
+def makeMap(signal,targetid):
     """
     This will be the map itself, it is not just for changing maps.
         In order to map over mapbox we are creating a scattermapbox object.
@@ -963,19 +960,19 @@ def makeMap(signal,grid_store):
     df = retrieve_data(signal)
     
     # Get click event for marker
-    grid_store = json.loads(grid_store)
-    print("###################### Map Click: " + str(grid_store) + " ########################")
-    if grid_store[1] is None:
-        print("grid_store is None")
-        marker_x = -105.5 +.125
-        marker_y = 40 + .125
-    else:
-        marker_y = grid_store[1]['points'][0]['lat'] 
-        marker_x = grid_store[1]['points'][0]['lon']
-        print("###################### Map Click Point: " + str([marker_x,marker_y]))
+#    grid_store = json.loads(grid_store)
+#    print("###################### Map Click: " + str(grid_store) + " ########################")
+#    if grid_store[1] is None:
+#        print("grid_store is None")
+#        marker_x = -105.5 +.125
+#        marker_y = 40 + .125
+#    else:
+#        marker_y = grid_store[1]['points'][0]['lat'] 
+#        marker_x = grid_store[1]['points'][0]['lon']
+#        print("###################### Map Click Point: " + str([marker_x,marker_y]))
              
-#    targetid = json.loads(targetid)
-#    print("Map Target ID: " + str(targetid))
+    targetid = int(targetid)
+    print("Map Target ID: " + str(targetid))
     # Get signal for labeling
     signal = json.loads(signal)
     indexname = signal[0]
