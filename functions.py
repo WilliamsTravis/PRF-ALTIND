@@ -542,7 +542,7 @@ producerpremiums, indemnities, frequencies, pcfs,
         # Standardize Range
         indexlist = standardize(indexlist)      
         
-        # Find Matching Probability for strike level - do this here instead of having to save it. 
+        # Find Matching Probability for strike level - doing this here instead of having to save it. 
         keydf = pd.read_csv(homepath+"data/Index_Adjustments/newstrikes.csv")
         if indexname not in list(keydf['index']):
             # Get the noaa values       
@@ -579,7 +579,7 @@ producerpremiums, indemnities, frequencies, pcfs,
             
         if scale == True:
         # Set up the payment scaling ratios.
-            scalardf = pd.read_csv(homepath+"data/Index_Adjustments/index_ratios.csv")
+            scalardf = pd.read_csv(homepath+"data/Index_Adjustments/index_ratios_bystrike.csv")
             scalars = dict(zip(scalardf['index'],scalardf['ratio']))
             
             # Get the appropriate ratio for the current index's group
@@ -1662,7 +1662,6 @@ def readArrays(path):
         Otherwise it outputs the same results as the readRaster functions. 
         No other parameters required. 
     '''
-    path = 'data\\indices\\noaa_arrays.npz'
     datepath = path[:-10]+"dates"+path[-4:]
     with np.load(path) as data:
         arrays = data.f.arr_0

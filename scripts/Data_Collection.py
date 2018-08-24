@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Mar 22 12:47:52 2018
-
+    
+******* Careful This script is from the research folder that reads the rasters and not numpy arrays in! Change, first"***********
 Collecting all the information from each index and set of parameters
 
 @author: trwi0358
@@ -13,37 +14,44 @@ os.chdir("C:/Users/user/github/")
 
 import warnings
 warnings.filterwarnings("ignore") #This is temporary, toggle this on for presentation
-mask = readRaster("e:\\data\\droughtindices\\masks\\nad83\\mask4.tif",1,-9999)[0]
-grid = readRaster("e:\\data\\droughtindices\\rma\\nad83\\prfgrid.tif",1,-9999.)[0]
 
+# Load mask 
+with np.load("data\\mask.npz") as data:
+    mask = data.f.mask
+    data.close()
+    
+# Load RMA grid
+with np.load("data\\prfgrid.npz") as data:
+    grid = data.f.grid
+    data.close()
+    
 # Establish parameters lists.
 # Index paths
-indices = ['e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\',
- 'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\',
- 'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\',
- 'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\',
- 'e:\\data\\droughtindices\\spi\\nad83\\1month\\',
- 'e:\\data\\droughtindices\\spi\\nad83\\2month\\',
- 'e:\\data\\droughtindices\\spi\\nad83\\3month\\',
- 'e:\\data\\droughtindices\\spi\\nad83\\6month\\',
- 'e:\\data\\droughtindices\\spei\\nad83\\1month\\',
- 'e:\\data\\droughtindices\\spei\\nad83\\2month\\',
- 'e:\\data\\droughtindices\\spei\\nad83\\3month\\',
- 'e:\\data\\droughtindices\\spei\\nad83\\6month\\']
+indices = ['data\\indices\\noaa_arrays.npz',
+             'data\\indices\\pdsi_arrays.npz',    
+             'data\\indices\\pdsisc_arrays.npz',
+             'data\\indices\\pdsiz_arrays.npz',
+             'data\\indices\\spi1_arrays.npz',
+             'data\\indices\\spi2_arrays.npz',
+             'data\\indices\\spi3_arrays.npz',
+             'data\\indices\\spi6_arrays.npz',
+             'data\\indices\\spei1_arrays.npz', 
+             'data\\indices\\spei2_arrays.npz',
+             'data\\indices\\spei3_arrays.npz',
+             'data\\indices\\spei6_arrays.npz']
 
-# Index names for the table
-indexnames = {'e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\': 'NOAA',
-            'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\': 'PDSI',
-          'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\': 'PDSIsc',
-          'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\': 'PDSIz',
-          'e:\\data\\droughtindices\\spi\\nad83\\1month\\':'SPI-1',
-          'e:\\data\\droughtindices\\spi\\nad83\\2month\\':'SPI-2',
-          'e:\\data\\droughtindices\\spi\\nad83\\3month\\':'SPI-3',
-          'e:\\data\\droughtindices\\spi\\nad83\\6month\\':'SPI-6',
-          'e:\\data\\droughtindices\\spei\\nad83\\1month\\': 'SPEI-1', 
-          'e:\\data\\droughtindices\\spei\\nad83\\2month\\': 'SPEI-2', 
-          'e:\\data\\droughtindices\\spei\\nad83\\3month\\': 'SPEI-3', 
-          'e:\\data\\droughtindices\\spei\\nad83\\6month\\': 'SPEI-6'}
+indexnames = {'data\\indices\\noaa_arrays.npz':'NOAA',
+             'data\\indices\\pdsi_arrays.npz':'PDSI',    
+             'data\\indices\\pdsisc_arrays.npz':'PDSIsc',
+             'data\\indices\\pdsiz_arrays.npz':'PDSIz',
+             'data\\indices\\spi1_arrays.npz':'SPI-1',
+             'data\\indices\\spi2_arrays.npz':'SPI-2',
+             'data\\indices\\spi3_arrays.npz':'SPI-3',
+             'data\\indices\\spi6_arrays.npz':'SPI-6',
+             'data\\indices\\spei1_arrays.npz':'SPEI-1', 
+             'data\\indices\\spei2_arrays.npz':'SPEI-2',
+             'data\\indices\\spei3_arrays.npz':'SPEI-3',
+             'data\\indices\\spei6_arrays.npz':'SPEI-6'}
 
 # Lists of other parameters
 actuarialyear = [2017,2018]
@@ -83,11 +91,10 @@ totaliterations = len(indices)*len(actuarialyear)*len(strikes)
 
 # I am taking out the other baseline years for now. It is meaningless for anything but the rainfall index
 for i in indices:
-    prfdf.to_csv("data\\PRFIndex_specs.csv")
     print(i)
-    indexlist = readRasters2(i,-9999)[0]
+    indexlist = readArrays(i)
     indexlist = [[a[0],a[1]*mask] for a in indexlist]
-    indexcov = covCellwise(indexlist) # what happened here? that c is probably from the covCellwise function, but *12? 
+    indexcov = covCellwise(indexlist)
     name = indexnames.get(i)                            
     for ay in actuarialyear:
         print("Bundling Actuarials...Year: "+str(ay))
@@ -136,11 +143,12 @@ for i in indices:
             row = [name,ay,indexcov,strike, scale,maxpay,minpay,medpay,meanpay,
                    paysd,monthpaysd,meanpcf,pcfsd,monthpcfsd,meanfre,monthfresd]
             rowdict = dict(zip(columns,row))
+            prfdf.to_csv("data\\PRFIndex_specs.csv")
             prfdf = prfdf.append(rowdict,ignore_index=True)
             print(str(iteration) + " / " + str(totaliterations) +"  |  " + str(round(iteration/totaliterations,2)*100) + "%")
 
-#prfdf = pd.read_csv("C:\\Users\\user\\Github\\data\\PRFIndex_specs.csv")
-prfdf.columns = ['DI', 'AY', 'ICOV', 'S', 'TS', 'MAX($)',
-       'MINP($)', 'MEDP($)', 'MEANP($)', 'PSD', 'MOPSD', 'MEANPCF',
+prfdf = pd.read_csv("C:\\Users\\user\\Github\\data\\PRFIndex_specs.csv")
+prfdf.columns = ['DI', 'AY', 'ICOV', 'S', 'TS', 'MAX',
+       'MINP', 'MEDP', 'MEANP', 'PSD', 'MOPSD', 'MEANPCF',
        'SDPCF', 'MOSDPCF', 'MEANPF', 'MOSDPF']
 prfdf.to_csv("C:\\Users\\user\\Github\\data\\PRFIndex_specs.csv", index = False)

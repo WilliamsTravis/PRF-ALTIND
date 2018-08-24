@@ -7,8 +7,9 @@ Created on Sat Jun  9 16:12:57 2018
 
 ############################# Set Scales by Signal ##########################################################################
 import os  
-os.chdir("C:/Users/user/github/")
+os.chdir("C:/Users/user/github/PRF-ALTIND/")
 from functions import *
+os.chdir("C:/Users/user/github/")
 import warnings
 warnings.filterwarnings("ignore") #This is temporary, toggle this on for presentation
 
@@ -16,43 +17,12 @@ warnings.filterwarnings("ignore") #This is temporary, toggle this on for present
 with np.load("data\\mask.npz") as data:
     mask = data.f.mask
     data.close()
-#mask = readRaster("e:\\data\\droughtindices\\masks\\nad83\\mask4.tif",1,-9999)[0]
 
 # Load RMA grid
 with np.load("data\\prfgrid.npz") as data:
     grid = data.f.grid
     data.close()
-#grid = readRaster("e:\\data\\droughtindices\\rma\\nad83\\prfgrid.tif",1,-9999.)[0]
 
-# Establish parameters lists.
-# Index paths
-#indices = ['e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\',
-# 'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\',
-# 'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\',
-# 'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\',
-# 'e:\\data\\droughtindices\\spi\\nad83\\1month\\',
-# 'e:\\data\\droughtindices\\spi\\nad83\\2month\\',
-# 'e:\\data\\droughtindices\\spi\\nad83\\3month\\',
-# 'e:\\data\\droughtindices\\spi\\nad83\\6month\\',
-# 'e:\\data\\droughtindices\\spei\\nad83\\1month\\',
-# 'e:\\data\\droughtindices\\spei\\nad83\\2month\\',
-# 'e:\\data\\droughtindices\\spei\\nad83\\3month\\',
-# 'e:\\data\\droughtindices\\spei\\nad83\\6month\\']
-
-# Index names for the table
-#indexnames = {'e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\': 'NOAA',
-#            'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\': 'PDSI',
-#          'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\': 'PDSIsc',
-#          'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\': 'PDSIz',
-#          'e:\\data\\droughtindices\\spi\\nad83\\1month\\':'SPI-1',
-#          'e:\\data\\droughtindices\\spi\\nad83\\2month\\':'SPI-2',
-#          'e:\\data\\droughtindices\\spi\\nad83\\3month\\':'SPI-3',
-#          'e:\\data\\droughtindices\\spi\\nad83\\6month\\':'SPI-6',
-#          'e:\\data\\droughtindices\\spei\\nad83\\1month\\': 'SPEI-1', 
-#          'e:\\data\\droughtindices\\spei\\nad83\\2month\\': 'SPEI-2', 
-#          'e:\\data\\droughtindices\\spei\\nad83\\3month\\': 'SPEI-3', 
-#          'e:\\data\\droughtindices\\spei\\nad83\\6month\\': 'SPEI-6'}
-    
 # Establish parameters lists.
 # Index paths
 indices = ['data\\indices\\noaa_arrays.npz',
@@ -113,9 +83,7 @@ totaliterations = len(indices)*len(actuarialyear)*len(strikes)
 
 # I am taking out the other baseline years for now. It is meaningless for anything but the rainfall index
 for i in indices:
-    prfdf.to_csv("data\\PRFIndex_specs.csv")
     print(i)
-#    indexlist = readRasters2(i,-9999)[0]
     indexlist = readArrays(i)
     indexlist = [[a[0],a[1]*mask] for a in indexlist]
     name = indexnames.get(i)                            
@@ -157,6 +125,6 @@ for i in indices:
             row = [name,ay,s,maxpay,minpay,maxfre,minfre,maxpcf,minpcf,maxnet,minnet,maxloss,minloss]
             rowdict = dict(zip(columns,row))
             prfdf = prfdf.append(rowdict,ignore_index=True)
-            print(str(iteration) + " / " + str(totaliterations) +"  |  " + str(round(iteration/totaliterations,2)*100) + "%")
+            print(str(iteration) + " / " + str(totaliterations) + "  |  " + str(round(iteration/totaliterations,2)*100) + "%")
 
 prfdf.to_csv("data\\PRF_Y_Scales.csv",index = False)

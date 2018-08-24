@@ -1,14 +1,10 @@
 # Issues:
-    # PCF maps are empty
-    # The Monthly Trend Box is not aligned
-    # Map changes could be quicker
     # I took garbage collection out troubleshooting, put it back in
     # Consider automatic gunicorn reloading with a webhook responding to github pushes, something like this:
-	# https://www.julo.ch/blog/lovely-deploy-with-gunicorn/ (maybe, it's old though)
+    # https://www.julo.ch/blog/lovely-deploy-with-gunicorn/ (maybe, it's old though)
 
 # In[]:
 ################################# Switching to/from Ubuntu VPS ##############################################################
-
 from sys import platform
 import os
 
@@ -29,22 +25,37 @@ warnings.filterwarnings("ignore") # The empty slice warnings are too much
 
 # For insurance grid IDs
 grid = np.load(homepath + "data/prfgrid.npz")["grid"]
+grids = np.unique(grid[~np.isnan(grid)])
+grids = [str(int(g)) for g in grids]
+grids = [{'label':g,'value':int(g)} for g in grids]
 mask = grid * 0 +  1
 
 # For the scatterplot maps
 source = xr.open_dataarray(homepath + "data/source_array.nc")
-source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities"]'
+source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities","light","24099"]'
 
 # For the datatable at the bottom
 datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
 
+# For the city list
+cities_df = pd.read_csv("cities.csv")
+cities = [{'label':cities_df['NAME'][i]+", "+ cities_df['STATE'][i],
+           'value':cities_df['grid'][i]} for i in range(len(cities_df))]
 
 ############################# Set Scales by Signal ##########################################################################
 # Create a dictionary that finds the max values for each strike level and return type
 scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
 
 ############################# Option #2: Calculate Payouts ##################################################################
-########################## Load Index Arrays #################################################################################
+# This option will be necessary for the full app of the future. Currently, all of the payouts are pre-calculated
+    # for speed in the online app. This is because I haven't quite yet figured out installation of gdal or rasterio
+    # on the virtual linux machine. Once that happens we'll be able to calculate hypothetical payouts back to 1948 
+    # (or longer) and adjust the baseline rate to see what happens with that as well. This would also allow for 
+    # customization of acreage, allocation, productivity level, etc. I believe it will necessarily be slightly 
+    # slower when calculating the initial insurance package of any individual index but will not slow responsivity
+    # once the first call is returned. 
+    
+########################## Load Index Arrays ################################################################################
 ## Actuarial Rates
 #indices = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1','spei2','spei3','spei6']
 #
@@ -242,11 +253,11 @@ dfcols = [{'label':"DI: Drought Index", 'value': 1},
 #         { 'label':" B.R.: Baseline Year Range", 'value': 5},
 #         { 'label':"S.R.: Study Year Range", 'value': 6},
          { 'label':"TS: Temporal Scale", 'value': 5},
-         { 'label':"MAXP($): Max Payment", 'value': 6},
-         { 'label':"MINP($): Minimum Payment", 'value': 7},
-         { 'label':"MEDP($): Median Payment", 'value': 8},
-         { 'label':"MEANP($): Mean Payment", 'value': 9},
-         { 'label':"SDP: Payment Standard Deviation", 'value': 10},
+         { 'label':"MAXP: Max Payment", 'value': 6},
+         { 'label':"MINP: Minimum Payment", 'value': 7},
+         { 'label':"MEDP: Median Payment", 'value': 8},
+         { 'label':"MEANP: Mean Payment", 'value': 9},
+         { 'label':"PSD: Payment Standard Deviation", 'value': 10},
          { 'label':"MOSDP: Monthly Payment Standard Deviation", 'value': 11},
          { 'label':"MEANPCF: Mean Payment Calculation Factor", 'value': 12},
          { 'label':"SDPCF: Payment Calculation Factor Standard Deviation", 'value': 13},
@@ -280,7 +291,7 @@ layout = dict(
         l=55,
         r=35,
         b=65,
-        t=65,
+        t=95,
         pad = 4
     ),
 
@@ -461,6 +472,7 @@ app.layout = html.Div(
                             value = "noaa",
                             placeholder = "NOAA CPC-Derived Rainfall Index"
                         ),
+                        html.P(""),
                         html.P('Choose Information Type'),
                         dcc.Dropdown(
                             id = 'return_type',
@@ -497,7 +509,11 @@ app.layout = html.Div(
                             labelStyle={'display': 'inline-block'}
                         ),
 
-                        html.Button(id='submit', type='submit', n_clicks = 0, children='submit')
+                        html.Button(id='submit', 
+                                    type='submit', 
+                                    n_clicks = 0, 
+                                    n_clicks_timestamp = '0',
+                                    children='submit')
 
                     ],
                     className='four columns'
@@ -510,7 +526,29 @@ app.layout = html.Div(
                                 value = "light",
                                 options = maptypes, #'light', 'dark','basic', 'outdoors', 'satellite', or 'satellite-streets'   
                                 multi = False
-                                    )   
+                                    ),
+                        html.P(" "),
+                        html.P("RMA Grid ID"),
+                        dcc.Dropdown(
+                                id = "grid_choice",
+                                value = 24099,
+                                placeholder = "Type Grid ID",
+                                options = grids,
+#                                n_clicks_timestamp = '0',
+                                multi = False,
+                                searchable = True
+                                ),
+                        html.P(" "),
+                        html.P("City"),
+                        dcc.Dropdown(
+                                id = "city_choice",
+                                value = 24099,
+                                placeholder = "Type city name",
+                                options = cities,
+                                multi = False,
+                                searchable = True
+                                ),
+
                     ],
                     className = 'four columns'
                 ),
@@ -521,13 +559,26 @@ app.layout = html.Div(
         html.Div(id='signal',
                  style={'display': 'none'}
             ),
-
+        
+        # Hidden DIV to store the grid_choice
+        html.Div(id='grid_store',
+                 children = '[24099, {"points": [{"curveNumber": 0, "pointNumber": 6163, "pointIndex": 3013, "lon": -105.5, "lat": 40, "text": "GRID #: 24099<br>Data: 191.769", "marker.color": 191.769}]},24099]',
+                 style={'display': 'none'}
+            ),
+         
+        # Hidden DIV to store the final target id used by the bar charts
+        html.Div(id='targetid_store',
+                 children = 24099,
+                 style={'display': 'none'}
+            ),
         # Single Interactive Map
         html.Div(#Five...If any one sees this, what is wrong with the alignment! Just fix it, go ahead I don't care this is ridiculous
             [
                 html.Div(#Five-a
                     [
-                        dcc.Graph(id='main_graph'),
+                        dcc.Graph(id='main_graph',
+#                                  n_clicks_timestamp = '0'
+                                  ),
                         html.Button(id='map_info',
                                     title = mapinfo,
                                     type='button',
@@ -619,7 +670,7 @@ app.layout = html.Div(
 def global_store(signal):
     # Unjson the signal (Back to original datatypes)
     signal = json.loads(signal)
-#    signal = ["noaa", 2018, [2000, 2017], 0.7, "indemnities"]
+#    signal = ["noaa", 2018, [2000, 2017], 0.7, "indemnities","strike"]
 
     # Rename signals for comprehension
     index = signal[0]
@@ -692,9 +743,17 @@ def retrieve_data(signal):
                State('year_slider','value'),
                State('strike_level','value'),
                State('return_type','value'),
-               State('map_type','value')])
-def compute_value(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype,maptype):
-    signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype,maptype])
+               State('map_type','value'),
+               State('grid_choice','value'),
+               State('grid_store','children')])
+def submitSignal(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype,maptype,grid_choice,grid_store):
+#    print("Signal grid choice: " + str(grid_choice) + ", " + str(type(grid_choice)) + " grid_store: " + str(grid_store) + ", " + str(type(grid_store)))
+    if grid_choice != grid_store and grid_choice is not None:
+        grid_source = "dropdown"
+    else: 
+        grid_source = "map"
+#    print(grid_source)
+    signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype,maptype,grid_choice, grid_source])
     return signal
 
 
@@ -800,15 +859,101 @@ def update_seriesinfo(signal,clickData):
 
     return seriesinfo
 
+@app.callback(Output('grid_store', 'children'),
+              [Input('grid_choice', 'value'),
+               Input('main_graph','clickData'),
+               Input('city_choice','value')])
+def gridStore(grid_choice,clickData,city_choice):
+    if city_choice is None:
+        city_choice = 24099
+    print("CITY CHOICE: " + str(city_choice))
+    return json.dumps([grid_choice, clickData, city_choice])
+   
+@app.callback(Output('targetid_store', 'children'),
+              [Input('grid_choice', 'value'),
+               Input('main_graph','clickData'),
+               Input('city_choice','value')],
+               [State('grid_store','children')])
+def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
+    grid_store = json.loads(grid_store)
+    print("##############################")    
+    print("Grid Store: " + str(grid_store) + ", type: " + str(type(grid_store)))
+    print("##############################")   
+    old_grid_choice = grid_store[0]
+    old_clickData = grid_store[1]
+    old_city_choice = grid_store[2]
+    print("Old grid_choice: " + str(grid_store[0])+", type: " + str(type(grid_store[0])))
+    print("New grid_choice: " + str(grid_choice)+", type: " + str(type(grid_choice)))
+    
+    # For the initial click we need some standins
+    if old_clickData is not None: # Old ClickData
+#        old_clickData = grid_store[1]
+        old_clickPoint = old_clickData['points'][0]['pointNumber']
+        print("Old clickData: " + str(old_clickPoint)+", type: " + str(type(old_clickPoint)))
+    else:
+        old_clickData = {'points': [{'curveNumber': 0, 
+                                     'pointNumber': 6163, 
+                                     'pointIndex': 3013, 
+                                     'lon': -105.5, 
+                                     'lat': 40, 
+                                     'text': 'GRID #: 24099<br>Data: 191.769', 
+                                     'marker.color': 191.769}]}
+     
+        old_clickPoint = old_clickData['points'][0]['pointNumber']
+        print("No Old Click Data, defaulting to: " + str(old_clickPoint))
+        
+    if clickData is not None: # New Click Data
+        clickPoint = clickData['points'][0]['pointNumber']
+        print("New clickData: " + str(clickPoint)+", type: " + str(type(clickPoint)))
+    else:
+        clickData = {'points': [{'curveNumber': 0, 
+                                 'pointNumber': 6163, 
+                                 'pointIndex': 3013, 
+                                 'lon': -105.5, 
+                                 'lat': 40, 
+                                 'text': 'GRID #: 24099<br>Data: 191.769', 
+                                 'marker.color': 191.769}]}
+     
+        clickPoint = clickData['points'][0]['pointNumber']                     
+        print("No New Click Data, defaulting to: " + str(clickPoint))
+    
+    if old_city_choice is not None:
+        print("Old city_choice: " + str(old_city_choice))
+    else:
+        old_city_choice = 24099
+        print("No old city_choice, defaulting to: " + str(old_city_choice))
+    print("##############################")    
 
+    if old_grid_choice != grid_choice:
+        print("grid_choice changed!")
+        targetid = grid_choice
+    elif old_clickPoint != clickPoint:
+        print("clickData changed!")
+        end_digit = clickData['points'][0]['text'].index("<")
+        targetid = int(clickData['points'][0]['text'][8:end_digit])
+    elif old_city_choice != city_choice:
+        print("city_choice changed!")
+        targetid = city_choice
+    else: 
+        print("Nothing changed.")
+        end_digit = clickData['points'][0]['text'].index("<")
+        targetid = int(old_clickData['points'][0]['text'][8:end_digit])
+        
+    print("############ gridStore Target ID: " + str(targetid) + " ####################")
+    return json.dumps(targetid)
+
+   
 # In[]
 ###############################################################################
 ######################### Graph Builders ######################################
 ###############################################################################
-@app.callback(Output('main_graph', 'figure'),
-              [Input('signal','children')],
-              [State('main_graph','clickData')])           
-def makeMap(signal,clickData):
+@app.callback(
+               Output('main_graph', 'figure'),
+              [Input('signal','children'),
+              Input('grid_store','children')]
+#              [State('targetid_store','children')]
+              )           
+def makeMap(signal,grid_store):
     """
     This will be the map itself, it is not just for changing maps.
         In order to map over mapbox we are creating a scattermapbox object.
@@ -818,7 +963,21 @@ def makeMap(signal,clickData):
 
     # Get data
     df = retrieve_data(signal)
-
+    
+    # Get click event for marker
+    grid_store = json.loads(grid_store)
+    print("###################### Map Click: " + str(grid_store) + " ########################")
+    if grid_store[1] is None:
+        print("grid_store is None")
+        marker_x = -105.5 +.125
+        marker_y = 40 + .125
+    else:
+        marker_y = grid_store[1]['points'][0]['lat'] 
+        marker_x = grid_store[1]['points'][0]['lon']
+        print("###################### Map Click Point: " + str([marker_x,marker_y]))
+             
+#    targetid = json.loads(targetid)
+#    print("Map Target ID: " + str(targetid))
     # Get signal for labeling
     signal = json.loads(signal)
     indexname = signal[0]
@@ -868,11 +1027,22 @@ def makeMap(signal,clickData):
     groups = pdf.groupby(("latbin", "lonbin"))
     df_flat = pdf.drop_duplicates(subset=['latbin', 'lonbin'])
     df = df_flat[np.isfinite(df_flat['data'])]
-
+    
+    # Append marker point
+#    row = df.iloc[[0]]
+#    row['latbin'] = marker_y
+#    row['lonbin'] = marker_x
+#    row['data'] = 9999
+#    df = df.append(row)
+    
     # Add Grid IDs
-    colorscale = [[0, 'rgb(2, 0, 68)'], [0.25, 'rgb(17, 123, 215)'],# Make darker (pretty sure this one)
-                    [0.35, 'rgb(37, 180, 167)'], [0.45, 'rgb(134, 191, 118)'],
-                    [0.6, 'rgb(249, 210, 41)'], [1.0, 'rgb(255, 249, 0)']] # Make darker
+    colorscale = [[0, 'rgb(68, 13, 84)'], 
+                  [0.1, 'rgb(47, 107, 142)'],# Make darker (pretty sure this one)
+#                  [0.25, 'rgb(37, 180, 167)'],
+                  [0.2, 'rgb(32, 164, 134)'],
+#                  [0.55, 'rgb(249, 210, 41)'],
+                  [.35, 'rgb(234, 229, 26)'],
+                  [1, 'rgb(248, 230, 32)']] # Make darker
 
 # Get Y-scale
     # Copy Scaletable
@@ -931,15 +1101,15 @@ def makeMap(signal,clickData):
                 font = dict(size = 15)
                 )
             )
-        ), # This will be for a point to be placed on the map, lot's of things to do that
+        ), # This will be for a point to be placed on the map
 #        dict(
 #            type = 'scattermapbox',
-#            lon = point['lonbin'],
-#            lat = point['latbin'],
-#            text = np.round(point['data'],2),
+#            lon = marker_x,
+#            lat = marker_y,
+#            text = "Testing",
 #            mode = 'markers',
 #            marker = dict(
-#                 size = point['size'],
+#                 size = 25,
 #                 color = 'rgb(249, 0, 0)'
 #                 )
 #            )
@@ -965,6 +1135,7 @@ def makeMap(signal,clickData):
         ),
         zoom=2,
         )
+    print("Mapbox Layout: " + str(layout['mapbox']))
           
     figure = dict(data=data, layout=layout)
     return figure
@@ -976,29 +1147,39 @@ def makeMap(signal,clickData):
 ###############################################################################
 @app.callback(Output('trend_graph','figure'),
                [Input('main_graph','clickData'),
-               Input('signal','children')])
-def makeTrendBar(clickData,signal):
+                Input('signal','children'),
+                Input('grid_choice','value'),
+                Input('targetid_store','children')
+                ])
+def makeTrendBar(clickData,signal,grid_choice,targetid):
     '''
     Makes a monthly trend bar for the selected information type at the clicked
         location.
     '''
-    if clickData is None:
-        x = londict.get(-100)
-        y = latdict.get(40)
-        targetid  = grid[y,x]
-    else:
-        x = londict.get(clickData['points'][0]['lon'])
-        y = latdict.get(clickData['points'][0]['lat'])
-        targetid  = grid[y,x]
-
-    # Get signal for labeling
-
-#        signal = json.dumps(["noaa", 2018, [2000, 2017], 0.9, "indemnities"])
+    # Get dataframe then signal for labeling
     df = retrieve_data(signal)
     signal = json.loads(signal)
+#    grid_store = json.loads(grid_store)
     return_type = signal[4]
     date1 = signal[2][0]
     date2 = signal[2][1]
+    
+    # Establish location with grid ID or click data from the map
+#    print("Trendbar grid choice: " + str(grid_choice) + ", " + str(type(grid_choice)) + 
+#          "\n  clickData: " + str(clickData) + ", " + str(type(clickData)))
+    
+#    if clickData is None:
+#        if grid_choice is None:
+#            targetid = 24100
+#        else:
+#            targetid  = int(grid_choice)
+#    else:
+#        x = londict.get(clickData['points'][0]['lon'])
+#        y = latdict.get(clickData['points'][0]['lat'])
+#        targetid  = grid[y,x]
+#        
+    targetid = int(targetid)
+    print("############## Trend Map Target ID: " + str(targetid) + ", type: " + str(type(targetid))+" #####################")
 
 #    # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
@@ -1120,15 +1301,20 @@ def makeTrendBar(clickData,signal):
             xref="paper",
             yref="paper"
         )
+            
+            
+    incities = cities_df['NAME'][cities_df['grid']==targetid]+", "+cities_df['STATE'][cities_df['grid']==targetid]
+    label = ", ".join(list(incities))
     layout_count['title'] = ("<b>" +returndict.get(return_type)
                              + ' Monthly Trends <br> Grid ID: '
-                             + str(int(targetid)) + "</b>")
+                             + str(int(targetid)) + "<br>" + label + "</b>")
+    layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
     layout_count['dragmode'] = 'select'
     layout_count['showlegend'] = False 
     layout_count['annotations'] = [annotation]
     layout_count['xaxis'] = dict(title= "Insurance Interval",tickvals = x, ticktext = intlabels,
                                 tickangle = 45)
-    layout['titlefont'] = {'color':'#CCCCCC','size' : 18}
+#    layout['titlefont'] = {'color':'#CCCCCC','size' : 18}
     layout_count['yaxis'] = yaxis
 #    layout_count['margin'] =   dict(l=60, r=35, b=75,t=65, pad = 4)
     figure = dict(data=data, layout=layout_count )
@@ -1140,20 +1326,24 @@ def makeTrendBar(clickData,signal):
 ###############################################################################
 @app.callback(Output('series_graph','figure'),
                [Input('main_graph','clickData'),
-               Input('signal','children')])
-def makeSeries(clickData,signal):
+               Input('signal','children'),
+               Input('grid_choice','value'),
+               Input('targetid_store','children')])
+def makeSeries(clickData,signal,grid_choice,targetid):
     '''
     Just like the trend bar, but for a time series.
     '''
-    if clickData is None:
-        x = londict.get(-100)
-        y = latdict.get(40)
-        targetid  = grid[y,x]
-
-    else:
-        x = londict.get(clickData['points'][0]['lon'])
-        y = latdict.get(clickData['points'][0]['lat'])
-        targetid  = grid[y,x]
+#    if clickData is None:
+#        x = londict.get(-100)
+#        y = latdict.get(40)
+#        targetid  = grid[y,x]
+#
+#    else:
+#        x = londict.get(clickData['points'][0]['lon'])
+#        y = latdict.get(clickData['points'][0]['lat'])
+#        targetid  = grid[y,x]
+    targetid = int(targetid)
+    print("############## Series Map Target ID: " + str(targetid) + ", type: " + str(type(targetid))+" #####################")
 
     # Get data
 #    if not signal:
@@ -1288,6 +1478,7 @@ def makeSeries(clickData,signal):
         )
     layout_count = copy.deepcopy(layout)
     layout_count['title'] = "<b>" + return_label+' Time Series <br> Grid ID: ' + str(int(targetid)) +"</b>"
+    layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
     layout_count['dragmode'] = 'select'
     layout_count['showlegend'] = False
     layout_count['annotations'] = [annotation]

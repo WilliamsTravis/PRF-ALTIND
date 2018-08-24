@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 This will loop through all combinations of paramters for the online model and 
-    save the average outputs as rasters, and pickle the time series for the 
+    save the average outputs as npz and save the payment time series for the 
     time series graphs
 
 Created on Mon May  7 20:29:57 2018
@@ -54,23 +54,21 @@ with np.load(homepath + 'data/actuarial/base_dates_2018.npz') as data:
 bases2018 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
 
 # Indices
-try:
-    arraydict
-except NameError:
-    arraydict = []
-    for i in tqdm(range(len(indices))):
-        with np.load("data/indices/"+indices[i]+"_arrays.npz") as data:
-            arrays = data.f.arr_0
-            data.close()
-        with np.load("data/indices/"+indices[i]+"_dates.npz") as data:
-            names = data.f.arr_0
-            data.close()
-        timeseries = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
-        arraydict.append(timeseries)
+
+arraydict = []
+for i in tqdm(range(len(indices))):
+    with np.load("data/indices/"+indices[i]+"_arrays.npz") as data:
+        arrays = data.f.arr_0
+        data.close()
+    with np.load("data/indices/"+indices[i]+"_dates.npz") as data:
+        names = data.f.arr_0
+        data.close()
+    timeseries = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
+    arraydict.append(timeseries)
+
     
-        
-    arraydict ={indices[i]:arraydict[i] for i in range(len(indices))}
-    gc.collect(2)
+arraydict = {indices[i]:arraydict[i] for i in range(len(indices))}
+gc.collect(2)
 # Strike level
 strikes = [.7,.75,.8,.85,.9]
 
@@ -88,7 +86,7 @@ acres = 500
  # acres, allocation,difference = 0, scale = True,plot = True
 for p in range(len(indices)):
     print(indices[p])
-    indexlist = arraydict.get(indexnames[p])
+    indexlist = arraydict.get(indices[p])
     for ay in actuarialyears:
         if ay == 2017:
             bases = bases2017
@@ -118,7 +116,7 @@ for p in range(len(indices)):
             # Premiums
             array = df[6]
             np.savez_compressed( # Save this as an array, too 
-                     "data\\onlinedata\\AY"
+                     "data\\payouts\\AY"
                      +str(ay)+"\\"+str(int(s*100))+"\\premiums\\"+indices[p]+"\\array",array)
             
             # Instead of Pickling use a numpy specific file 
@@ -126,15 +124,15 @@ for p in range(len(indices)):
             dates = pd.DataFrame([a[0] for a in arrays]) # Also, just to keep things solid, lets save the dates. 
             dates.columns = ["dates"]
             jarrays = np.array([a[1] for a in arrays])
-            np.savez_compressed("data\\onlinedata\\AY"
+            np.savez_compressed("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\premiums\\"+indices[p]+"\\arrays", jarrays)
-            dates.to_csv("data\\onlinedata\\AY"
+            dates.to_csv("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\premiums\\"+indices[p]+"\\dates.csv", index = False)
 
             # Indemnities
             array = df[7]
             np.savez_compressed( # Save this as an array, too 
-                     "data\\onlinedata\\AY"
+                     "data\\payouts\\AY"
                      +str(ay)+"\\"+str(int(s*100))+"\\indemnities\\"+indices[p]+"\\array",array)
             
             # Instead of Pickling use a numpy specific file 
@@ -142,9 +140,9 @@ for p in range(len(indices)):
             dates = pd.DataFrame([a[0] for a in arrays]) # Also, just to keep things solid, lets save the dates. 
             dates.columns = ["dates"]
             jarrays = np.array([a[1] for a in arrays])
-            np.savez_compressed("data\\onlinedata\\AY"
+            np.savez_compressed("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\indemnities\\"+indices[p]+"\\arrays", jarrays)
-            dates.to_csv("data\\onlinedata\\AY"
+            dates.to_csv("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\indemnities\\"+indices[p]+"\\dates.csv", index = False)
 
             
@@ -153,7 +151,7 @@ for p in range(len(indices)):
             # frequencies
             array = df[8]
             np.savez_compressed( # Save this as an array, too 
-                     "data\\onlinedata\\AY"
+                     "data\\payouts\\AY"
                      +str(ay)+"\\"+str(int(s*100))+"\\frequencies\\"+indices[p]+"\\array",array)
             
             # Instead of Pickling use a numpy specific file 
@@ -161,9 +159,9 @@ for p in range(len(indices)):
             dates = pd.DataFrame([a[0] for a in arrays]) # Also, just to keep things solid, lets save the dates. 
             dates.columns = ["dates"]
             jarrays = np.array([a[1] for a in arrays])
-            np.savez_compressed("data\\onlinedata\\AY"
+            np.savez_compressed("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\frequencies\\"+indices[p]+"\\arrays", jarrays)
-            dates.to_csv("data\\onlinedata\\AY"
+            dates.to_csv("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\frequencies\\"+indices[p]+"\\dates.csv", index = False)
 
             
@@ -174,7 +172,7 @@ for p in range(len(indices)):
             # pcfs
             array = df[9]
             np.savez_compressed( # Save this as an array, too 
-                     "data\\onlinedata\\AY"
+                     "data\\payouts\\AY"
                      +str(ay)+"\\"+str(int(s*100))+"\\pcfs\\"+indices[p]+"\\array",array)
             
             # Instead of Pickling use a numpy specific file 
@@ -182,9 +180,9 @@ for p in range(len(indices)):
             dates = pd.DataFrame([a[0] for a in arrays]) # Also, just to keep things solid, lets save the dates. 
             dates.columns = ["dates"]
             jarrays = np.array([a[1] for a in arrays])
-            np.savez_compressed("data\\onlinedata\\AY"
+            np.savez_compressed("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\pcfs\\"+indices[p]+"\\arrays", jarrays)
-            dates.to_csv("data\\onlinedata\\AY"
+            dates.to_csv("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\pcfs\\"+indices[p]+"\\dates.csv", index = False)
 
 
@@ -194,7 +192,7 @@ for p in range(len(indices)):
             # nets
             array = df[10]
             np.savez_compressed( # Save this as an array, too 
-                     "data\\onlinedata\\AY"
+                     "data\\payouts\\AY"
                      +str(ay)+"\\"+str(int(s*100))+"\\nets\\"+indices[p]+"\\array",array)
             
             # Instead of Pickling use a numpy specific file 
@@ -202,9 +200,9 @@ for p in range(len(indices)):
             dates = pd.DataFrame([a[0] for a in arrays]) # Also, just to keep things solid, lets save the dates. 
             dates.columns = ["dates"]
             jarrays = np.array([a[1] for a in arrays])
-            np.savez_compressed("data\\onlinedata\\AY"
+            np.savez_compressed("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\nets\\"+indices[p]+"\\arrays", jarrays)
-            dates.to_csv("data\\onlinedata\\AY"
+            dates.to_csv("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\nets\\"+indices[p]+"\\dates.csv", index = False)
 
             
@@ -213,7 +211,7 @@ for p in range(len(indices)):
             # lossratios
             array = df[11]
             np.savez_compressed( # Save this as an array, too 
-                     "data\\onlinedata\\AY"
+                     "data\\payouts\\AY"
                      +str(ay)+"\\"+str(int(s*100))+"\\lossratios\\"+indices[p]+"\\array",array)
             
             # Instead of Pickling use a numpy specific file 
@@ -221,9 +219,9 @@ for p in range(len(indices)):
             dates = pd.DataFrame([a[0] for a in arrays]) # Also, just to keep things solid, lets save the dates. 
             dates.columns = ["dates"]
             jarrays = np.array([a[1] for a in arrays])
-            np.savez_compressed("data\\onlinedata\\AY"
+            np.savez_compressed("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\lossratios\\"+indices[p]+"\\arrays", jarrays)
-            dates.to_csv("data\\onlinedata\\AY"
+            dates.to_csv("data\\payouts\\AY"
                          +str(ay)+"\\"+str(int(s*100))+"\\lossratios\\"+indices[p]+"\\dates.csv", index = False)
 
 
