@@ -529,17 +529,17 @@ app.layout = html.Div(
                                 options = maptypes, #'light', 'dark','basic', 'outdoors', 'satellite', or 'satellite-streets'   
                                 multi = False
                                     ),
-                        html.P(" "),
-                        html.P("RMA Grid ID"),
-                        dcc.Dropdown(
-                                id = "grid_choice",
-                                value = 24099,
-                                placeholder = "Type Grid ID",
-                                options = grids,
-#                                n_clicks_timestamp = '0',
-                                multi = False,
-                                searchable = True
-                                ),
+#                        html.P(" "),
+#                        html.P("RMA Grid ID"),
+#                        dcc.Dropdown(
+#                                id = "grid_choice",
+#                                value = 24099,
+#                                placeholder = "Type Grid ID",
+#                                options = grids,
+##                                n_clicks_timestamp = '0',
+#                                multi = False,
+#                                searchable = True
+#                                ),
                         html.P(" "),
                         html.P("City"),
                         dcc.Dropdown(
@@ -564,7 +564,7 @@ app.layout = html.Div(
         
         # Hidden DIV to store the grid_choice
         html.Div(id='grid_store',
-                 children = '[24099, {"points": [{"curveNumber": 0, "pointNumber": 6163, "pointIndex": 3013, "lon": -105.5, "lat": 40, "text": "GRID #: 24099<br>Data: 191.769", "marker.color": 191.769}]},24099]',
+                 children = '[{"points": [{"curveNumber": 0, "pointNumber": 6163, "pointIndex": 3013, "lon": -105.5, "lat": 40, "text": "GRID #: 24099<br>Data: 191.769", "marker.color": 191.769}]},24099]',
                  style={'display': 'none'}
             ),
          
@@ -746,16 +746,16 @@ def retrieve_data(signal):
                State('strike_level','value'),
                State('return_type','value'),
                State('map_type','value'),
-               State('grid_choice','value'),
+#               State('grid_choice','value'),
                State('grid_store','children')])
-def submitSignal(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype,maptype,grid_choice,grid_store):
+def submitSignal(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype,maptype,grid_store):
 #    print("Signal grid choice: " + str(grid_choice) + ", " + str(type(grid_choice)) + " grid_store: " + str(grid_store) + ", " + str(type(grid_store)))
-    if grid_choice != grid_store and grid_choice is not None:
-        grid_source = "dropdown"
-    else: 
-        grid_source = "map"
+#    if grid_choice != grid_store and grid_choice is not None:
+#        grid_source = "dropdown"
+#    else: 
+#        grid_source = "map"
 #    print(grid_source)
-    signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype,maptype,grid_choice, grid_source])
+    signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype,maptype])
     return signal
 
 
@@ -861,31 +861,102 @@ def update_seriesinfo(signal,clickData):
 
     return seriesinfo
 
-@app.callback(Output('grid_store', 'children'),
-              [Input('grid_choice', 'value'),
-               Input('main_graph','clickData'),
-               Input('city_choice','value')])
-def gridStore(grid_choice,clickData,city_choice):
-    print(str(clickData))
-    return json.dumps([grid_choice, clickData, city_choice])
-   
+# In[]
 #@app.callback(Output('grid_store', 'children'),
-#              [Input('main_graph','clickData')])
-#def gridStore(clickData):
+#              [Input('grid_choice', 'value'),
+#               Input('main_graph','clickData'),
+#               Input('city_choice','value')])
+#def gridStore(grid_choice,clickData,city_choice):
 #    print(str(clickData))
-#    return json.dumps(clickData)
+#    return json.dumps([grid_choice, clickData, city_choice])
+#   
+#
+#@app.callback(Output('targetid_store', 'children'),
+#              [Input('grid_choice', 'value'),
+#               Input('main_graph','clickData'),
+#               Input('city_choice','value')],
+#              [State('grid_store','children')])
+#def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
+#    # Get all of the old selections
+#    grid_store = json.loads(grid_store)
+#    old_grid_choice = grid_store[0]    
+#    old_city_choice = grid_store[2]
+#    old_clickData = grid_store[1]
+#
+#    # Special Case for clickData - Determine ids from clickData
+#    if old_clickData is None:
+#        old_click_choice = 24099
+#    else:
+#        end_digit = old_clickData['points'][0]['text'].index("<")
+#        old_click_choice = int(old_clickData['points'][0]['text'][8:end_digit])
+#    
+#    # Setup initial values for unselected items on first run
+#    if grid_choice is None:
+#        grid_choice = 24099
+#        print("No old grid_choice, defaulting to: 24099")
+#
+#    if city_choice is None:
+#        city_choice = 24099
+#        print("No old city_choice, defaulting to: 24099")
+#    
+#    if clickData is None: # New Click Data
+#        click_choice = 24099
+#        print("No old click_choice, defaulting to: 24099")
+#    else:     
+#        end_digit = clickData['points'][0]['text'].index("<")
+#        click_choice =  int(clickData['points'][0]['text'][8:end_digit])
+#
+#    
+#    print("Old grid_choice: " + str(old_grid_choice)+", type: " + str(type(old_grid_choice)))
+#    print("New grid_choice: " + str(grid_choice)+", type: " + str(type(grid_choice)))
+#    print("Old city_choice: " + str(old_city_choice) + ", type: " + str(type(old_city_choice)))    
+#    print("New city_choice: " + str(city_choice) + ", type: " + str(type(city_choice)))
+#    print("Old click_choice: " + str(old_click_choice) + ", type: " + str(type(old_click_choice)))
+#    print("New Click_choice: " + str(click_choice) + ", type: " + str(type(click_choice)))
+#
+#    # Determine which selection changed last. 
+#    print("################## Determining the element that changed the target ID ###########################")
+##    print("Old target ID: " + str(old_targetid))
+#    if old_click_choice != click_choice:# or click_choice != grid_choice or click_choice != city_choice:
+#        print("clickData changed!")
+#        end_digit = clickData['points'][0]['text'].index("<")
+#        targetid = int(clickData['points'][0]['text'][8:end_digit])
+#    elif old_grid_choice != grid_choice:# or grid_choice != city_choice or grid_choice != click_choice:
+#        print("grid_choice changed!")
+#        targetid = grid_choice
+#    elif old_city_choice != city_choice:# or city_choice != grid_choice or city_choice != click_choice:
+#        print("city_choice changed!")
+#        targetid = city_choice
+#    elif old_city_choice == city_choice and city_choice != old_click_choice or city_choice != old_grid_choice:
+#        print("same city_choice selected again")
+#        targetid = city_choice
+##    elif old_grid_choice == grid_choice and grid_choice != old_click_choice and grid_choice != old_city_choice:
+##        print("same city_choice selected again")
+##        targetid = old_grid_choice
+#    else: 
+#        print("Nothing changed.")
+#        targetid = grid_choice
+#        
+#    print("############ gridStore Target ID: " + str(targetid) + " ####################")
+#    return json.dumps(targetid)
+
+# In[]
+@app.callback(Output('grid_store', 'children'),
+              [Input('main_graph','clickData'),
+               Input('city_choice','value')])
+def gridStore(clickData,city_choice):
+    print(str(clickData))
+    return json.dumps([clickData, city_choice])
    
 @app.callback(Output('targetid_store', 'children'),
-              [Input('grid_choice', 'value'),
-               Input('main_graph','clickData'),
+              [Input('main_graph','clickData'),
                Input('city_choice','value')],
               [State('grid_store','children')])
-def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
+def gridOrderCheck(clickData,city_choice,grid_store):
     # Get all of the old selections
     grid_store = json.loads(grid_store)
-    old_grid_choice = grid_store[0]    
-    old_city_choice = grid_store[2]
-    old_clickData = grid_store[1]
+    old_clickData = grid_store[0]
+    old_city_choice = grid_store[1]
 
     # Special Case for clickData - Determine ids from clickData
     if old_clickData is None:
@@ -895,10 +966,6 @@ def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
         old_click_choice = int(old_clickData['points'][0]['text'][8:end_digit])
     
     # Setup initial values for unselected items on first run
-    if grid_choice is None:
-        grid_choice = 24099
-        print("No old grid_choice, defaulting to: 24099")
-
     if city_choice is None:
         city_choice = 24099
         print("No old city_choice, defaulting to: 24099")
@@ -911,8 +978,6 @@ def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
         click_choice =  int(clickData['points'][0]['text'][8:end_digit])
 
     
-    print("Old grid_choice: " + str(old_grid_choice)+", type: " + str(type(old_grid_choice)))
-    print("New grid_choice: " + str(grid_choice)+", type: " + str(type(grid_choice)))
     print("Old city_choice: " + str(old_city_choice) + ", type: " + str(type(old_city_choice)))    
     print("New city_choice: " + str(city_choice) + ", type: " + str(type(city_choice)))
     print("Old click_choice: " + str(old_click_choice) + ", type: " + str(type(old_click_choice)))
@@ -920,31 +985,22 @@ def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
 
     # Determine which selection changed last. 
     print("################## Determining the element that changed the target ID ###########################")
-#    print("Old target ID: " + str(old_targetid))
-    if old_click_choice != click_choice:# or click_choice != grid_choice or click_choice != city_choice:
+    if old_click_choice != click_choice:
         print("clickData changed!")
         end_digit = clickData['points'][0]['text'].index("<")
         targetid = int(clickData['points'][0]['text'][8:end_digit])
-    elif old_grid_choice != grid_choice:# or grid_choice != city_choice or grid_choice != click_choice:
-        print("grid_choice changed!")
-        targetid = grid_choice
-    elif old_city_choice != city_choice:# or city_choice != grid_choice or city_choice != click_choice:
+    elif old_city_choice != city_choice:
         print("city_choice changed!")
         targetid = city_choice
-    elif old_city_choice == city_choice and city_choice != old_click_choice or city_choice != old_grid_choice:
-        print("same city_choice selected again")
-        targetid = city_choice
-#    elif old_grid_choice == grid_choice and grid_choice != old_click_choice and grid_choice != old_city_choice:
-#        print("same city_choice selected again")
-#        targetid = old_grid_choice
     else: 
         print("Nothing changed.")
-        targetid = grid_choice
+        targetid = city_choice
         
     print("############ gridStore Target ID: " + str(targetid) + " ####################")
     return json.dumps(targetid)
 
-   
+
+
 # In[]
 ###############################################################################
 ######################### Graph Builders ######################################
@@ -952,8 +1008,6 @@ def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
 @app.callback(
                Output('main_graph', 'figure'),
               [Input('signal','children')]
-#              [State('grid_store','children'),
-#              [State('targetid_store','children')]
               )           
 def makeMap(signal):
     """
@@ -1058,31 +1112,6 @@ def makeMap(signal):
         miny = 0
         maxy = 1700
     
-
-    # For nets the minimum can be negative....
-#    if 'nets' in return_type:
-#        signal[4] = 'premiums'
-#        signal2 = json.dumps(signal)
-#        df2 = retrieve_data(signal2)
-#        arrays = [a[1] for a in df2]
-#        ylow = -np.nanmax(arrays)
-#    else:
-#        ylow = 0
-
-#    if return_type != "premiums":
-#        col = "max_"+return_type
-#        maxy = max(scaletable[col])
-#        maxy =  100 if return_type == "frequencies" else maxy
-#    else:
-#        maxy = 2000
-#        
-#    if return_type == "frequencies":
-#        col = "max_"+return_type
-#        maxy = max(scaletable[col])
-#        maxy =  100 if return_type == "frequencies" else maxy
-#    else:
-#        maxy = 2000
-        
 # Create the scattermapbox object
     data = [
         dict(
@@ -1132,7 +1161,7 @@ def makeMap(signal):
     layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
     layout['mapbox']=dict(
         accesstoken=mapbox_access_token,
-        style=maptype,#'light', 'basic', 'outdoors', 'satellite', or 'satellite-streets'
+        style=maptype,
         center=dict(
             lon= -95.7,
             lat= 37.1
@@ -1152,10 +1181,10 @@ def makeMap(signal):
 @app.callback(Output('trend_graph','figure'),
                [Input('main_graph','clickData'),
                 Input('signal','children'),
-                Input('grid_choice','value'),
+#                Input('grid_choice','value'),
                 Input('targetid_store','children')
                 ])
-def makeTrendBar(clickData,signal,grid_choice,targetid):
+def makeTrendBar(clickData,signal,targetid):
     '''
     Makes a monthly trend bar for the selected information type at the clicked
         location.
@@ -1329,9 +1358,9 @@ def makeTrendBar(clickData,signal,grid_choice,targetid):
 @app.callback(Output('series_graph','figure'),
                [Input('main_graph','clickData'),
                Input('signal','children'),
-               Input('grid_choice','value'),
+#               Input('grid_choice','value'),
                Input('targetid_store','children')])
-def makeSeries(clickData,signal,grid_choice,targetid):
+def makeSeries(clickData,signal,targetid):
     '''
     Just like the trend bar, but for a time series.
     '''
@@ -1418,14 +1447,6 @@ def makeSeries(clickData,signal,grid_choice,targetid):
                           line = dict(width=1, color = "#000000")
                           )
         ),
-#        dict(
-#            type='bar',
-#            x=bins,
-#            y=hists,
-#            marker = dict(
-#                    color = '#000000'
-#            ),
-#        ),
     ]
 
     if 'nets' in return_type:
