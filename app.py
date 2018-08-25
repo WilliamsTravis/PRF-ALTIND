@@ -529,17 +529,16 @@ app.layout = html.Div(
                                 options = maptypes, #'light', 'dark','basic', 'outdoors', 'satellite', or 'satellite-streets'   
                                 multi = False
                                     ),
-#                        html.P(" "),
-#                        html.P("RMA Grid ID"),
-#                        dcc.Dropdown(
-#                                id = "grid_choice",
-#                                value = 24099,
-#                                placeholder = "Type Grid ID",
-#                                options = grids,
-##                                n_clicks_timestamp = '0',
-#                                multi = False,
-#                                searchable = True
-#                                ),
+                        html.P(" "),
+                        html.P("RMA Grid ID"),
+                        dcc.Dropdown(
+                                id = "grid_choice",
+                                value = 24099,
+                                placeholder = "Type Grid ID",
+                                options = grids,
+                                multi = False,
+                                searchable = True
+                                ),
                         html.P(" "),
                         html.P("City"),
                         dcc.Dropdown(
@@ -562,19 +561,31 @@ app.layout = html.Div(
                  style={'display': 'none'}
             ),
         
-        # Hidden DIV to store the grid_choice
+#        # Hidden DIV to store the grid_choice
+#        html.Div(id='grid_store',
+#                 children = '[24099,{"points": [{"curveNumber": 0, "pointNumber": 6163, "pointIndex": 3013, "lon": -105.5, "lat": 40, "text": "GRID #: 24099<br>Data: 191.769", "marker.color": 191.769}]},24099]',
+#                 style={'display': 'none'}
+#            ),
+        html.Div(id='click_store',
+                 children = '24099',
+                 style={'display': 'none'}
+            ),
+        html.Div(id='city_store',
+                 children = '24099',
+                 style={'display': 'none'}
+            ),
         html.Div(id='grid_store',
-                 children = '[{"points": [{"curveNumber": 0, "pointNumber": 6163, "pointIndex": 3013, "lon": -105.5, "lat": 40, "text": "GRID #: 24099<br>Data: 191.769", "marker.color": 191.769}]},24099]',
+                 children = '24099',
                  style={'display': 'none'}
             ),
          
         # Hidden DIV to store the final target id used by the bar charts
         html.Div(id='targetid_store',
-                 children = 24099,
+                 children = '24099',
                  style={'display': 'none'}
             ),
         # Single Interactive Map
-        html.Div(#Five...If any one sees this, what is wrong with the alignment! Just fix it, go ahead I don't care this is ridiculous
+        html.Div(#Five...If any one sees this, what is wrong with the alignment!? Just fix it, go ahead I don't care this is ridiculous
             [
                 html.Div(#Five-a
                     [
@@ -724,7 +735,6 @@ def global_store(signal):
 #    indx = returnumbers.get(returntype)
 #    df = df[indx]
     
-    
     return df
 
 def retrieve_data(signal):
@@ -745,18 +755,12 @@ def retrieve_data(signal):
                State('year_slider','value'),
                State('strike_level','value'),
                State('return_type','value'),
-               State('map_type','value'),
-#               State('grid_choice','value'),
-               State('grid_store','children')])
-def submitSignal(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype,maptype,grid_store):
-#    print("Signal grid choice: " + str(grid_choice) + ", " + str(type(grid_choice)) + " grid_store: " + str(grid_store) + ", " + str(type(grid_store)))
-#    if grid_choice != grid_store and grid_choice is not None:
-#        grid_source = "dropdown"
-#    else: 
-#        grid_source = "map"
-#    print(grid_source)
+               State('map_type','value')])
+def submitSignal(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype,maptype):
     signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype,maptype])
     return signal
+
+
 
 
 # In[]
@@ -861,145 +865,60 @@ def update_seriesinfo(signal,clickData):
 
     return seriesinfo
 
-# In[]
-#@app.callback(Output('grid_store', 'children'),
-#              [Input('grid_choice', 'value'),
-#               Input('main_graph','clickData'),
-#               Input('city_choice','value')])
-#def gridStore(grid_choice,clickData,city_choice):
-#    print(str(clickData))
-#    return json.dumps([grid_choice, clickData, city_choice])
-#   
-#
-#@app.callback(Output('targetid_store', 'children'),
-#              [Input('grid_choice', 'value'),
-#               Input('main_graph','clickData'),
-#               Input('city_choice','value')],
-#              [State('grid_store','children')])
-#def gridOrderCheck(grid_choice,clickData,city_choice,grid_store):
-#    # Get all of the old selections
-#    grid_store = json.loads(grid_store)
-#    old_grid_choice = grid_store[0]    
-#    old_city_choice = grid_store[2]
-#    old_clickData = grid_store[1]
-#
-#    # Special Case for clickData - Determine ids from clickData
-#    if old_clickData is None:
-#        old_click_choice = 24099
-#    else:
-#        end_digit = old_clickData['points'][0]['text'].index("<")
-#        old_click_choice = int(old_clickData['points'][0]['text'][8:end_digit])
-#    
-#    # Setup initial values for unselected items on first run
-#    if grid_choice is None:
-#        grid_choice = 24099
-#        print("No old grid_choice, defaulting to: 24099")
-#
-#    if city_choice is None:
-#        city_choice = 24099
-#        print("No old city_choice, defaulting to: 24099")
-#    
-#    if clickData is None: # New Click Data
-#        click_choice = 24099
-#        print("No old click_choice, defaulting to: 24099")
-#    else:     
-#        end_digit = clickData['points'][0]['text'].index("<")
-#        click_choice =  int(clickData['points'][0]['text'][8:end_digit])
-#
-#    
-#    print("Old grid_choice: " + str(old_grid_choice)+", type: " + str(type(old_grid_choice)))
-#    print("New grid_choice: " + str(grid_choice)+", type: " + str(type(grid_choice)))
-#    print("Old city_choice: " + str(old_city_choice) + ", type: " + str(type(old_city_choice)))    
-#    print("New city_choice: " + str(city_choice) + ", type: " + str(type(city_choice)))
-#    print("Old click_choice: " + str(old_click_choice) + ", type: " + str(type(old_click_choice)))
-#    print("New Click_choice: " + str(click_choice) + ", type: " + str(type(click_choice)))
-#
-#    # Determine which selection changed last. 
-#    print("################## Determining the element that changed the target ID ###########################")
-##    print("Old target ID: " + str(old_targetid))
-#    if old_click_choice != click_choice:# or click_choice != grid_choice or click_choice != city_choice:
-#        print("clickData changed!")
-#        end_digit = clickData['points'][0]['text'].index("<")
-#        targetid = int(clickData['points'][0]['text'][8:end_digit])
-#    elif old_grid_choice != grid_choice:# or grid_choice != city_choice or grid_choice != click_choice:
-#        print("grid_choice changed!")
-#        targetid = grid_choice
-#    elif old_city_choice != city_choice:# or city_choice != grid_choice or city_choice != click_choice:
-#        print("city_choice changed!")
-#        targetid = city_choice
-#    elif old_city_choice == city_choice and city_choice != old_click_choice or city_choice != old_grid_choice:
-#        print("same city_choice selected again")
-#        targetid = city_choice
-##    elif old_grid_choice == grid_choice and grid_choice != old_click_choice and grid_choice != old_city_choice:
-##        print("same city_choice selected again")
-##        targetid = old_grid_choice
-#    else: 
-#        print("Nothing changed.")
-#        targetid = grid_choice
-#        
-#    print("############ gridStore Target ID: " + str(targetid) + " ####################")
-#    return json.dumps(targetid)
 
-# In[]
-@app.callback(Output('grid_store', 'children'),
-              [Input('main_graph','clickData'),
-               Input('city_choice','value')])
-def gridStore(clickData,city_choice):
-    print(str(clickData))
-    return json.dumps([clickData, city_choice])
-   
-@app.callback(Output('targetid_store', 'children'),
-              [Input('main_graph','clickData'),
-               Input('city_choice','value')],
-              [State('grid_store','children')])
-def gridOrderCheck(clickData,city_choice,grid_store):
-    # Get all of the old selections
-    grid_store = json.loads(grid_store)
-    old_clickData = grid_store[0]
-    old_city_choice = grid_store[1]
-
-    # Special Case for clickData - Determine ids from clickData
-    if old_clickData is None:
-        old_click_choice = 24099
+# In[] 
+@app.callback(Output('click_store','children'),
+              [Input('main_graph','clickData')])
+def clickOut(clickData):
+    if clickData is None:
+        click_choice = 24099
+        when = time.time()
     else:
-        end_digit = old_clickData['points'][0]['text'].index("<")
-        old_click_choice = int(old_clickData['points'][0]['text'][8:end_digit])
+        end_digit = clickData['points'][0]['text'].index("<")
+        click_choice = int(clickData['points'][0]['text'][8:end_digit])
+        when = time.time()
+#    print("Click time = " + str(when))
+    print("Click: " + str(click_choice)+", time: " + str(when))
+    return json.dumps([click_choice,when])
     
-    # Setup initial values for unselected items on first run
+@app.callback(Output('city_store','children'),
+              [Input('city_choice','value')])
+def cityOut(city_choice):
     if city_choice is None:
         city_choice = 24099
-        print("No old city_choice, defaulting to: 24099")
-    
-    if clickData is None: # New Click Data
-        click_choice = 24099
-        print("No old click_choice, defaulting to: 24099")
-    else:     
-        end_digit = clickData['points'][0]['text'].index("<")
-        click_choice =  int(clickData['points'][0]['text'][8:end_digit])
+    when = time.time()
+    print("City: "+ str(city_choice)+", time: " + str(when))
+    return json.dumps([city_choice,when])
 
-    
-    print("Old city_choice: " + str(old_city_choice) + ", type: " + str(type(old_city_choice)))    
-    print("New city_choice: " + str(city_choice) + ", type: " + str(type(city_choice)))
-    print("Old click_choice: " + str(old_click_choice) + ", type: " + str(type(old_click_choice)))
-    print("New Click_choice: " + str(click_choice) + ", type: " + str(type(click_choice)))
+@app.callback(Output('grid_store','children'),
+              [Input('grid_choice','value')])
+def gridOut(grid_choice):
+    if grid_choice is None:
+        grid_choice =24099
+    when = time.time()
+    print("Grid: " + str(grid_choice)+", time: " + str(when))
+    grid_store = json.dumps([grid_choice,when])
+    return grid_store
 
-    # Determine which selection changed last. 
-    print("################## Determining the element that changed the target ID ###########################")
-    if old_click_choice != click_choice:
-        print("clickData changed!")
-        end_digit = clickData['points'][0]['text'].index("<")
-        targetid = int(clickData['points'][0]['text'][8:end_digit])
-    elif old_city_choice != city_choice:
-        print("city_choice changed!")
-        targetid = city_choice
-    else: 
-        print("Nothing changed.")
-        targetid = city_choice
-        
-    print("############ gridStore Target ID: " + str(targetid) + " ####################")
+@app.callback(Output('targetid_store','children'),
+              [Input('click_store','children'),
+              Input('city_store','children'),
+              Input('grid_store','children')])
+def whichGrid(click_store,city_store,grid_store):
+#    print("Print Store in which grid: " + click_store)
+    cls,clt = json.loads(click_store)
+    cis,cit = json.loads(city_store)
+    grs,grt = json.loads(grid_store)
+    
+    if clt > cit and clt > grt:
+        targetid = cls
+    if cit > clt and cit > grt:
+        targetid = cis
+    if grt > clt and grt > cit:
+        targetid = grs
+    print("whichGrid Target ID: " + str(targetid))
+    
     return json.dumps(targetid)
-
-
 
 # In[]
 ###############################################################################
