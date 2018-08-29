@@ -908,8 +908,13 @@ def insuranceCalc(index, productivity, strike, acres, allocation, bases, premium
 
     ############## Actuarial rates ########################################
     base = bases[bases[0][-2:] == name[-2:]][1] # This chooses the base value of the appropriate interval # [1] because that is the array index
-    premiumrate = premiums[premiums[0][-5:-3] == strike and premiums[0][-2:] == name[-2:]][1] # This chooses the premium rate at the right interval and strike level
-    
+#    premiumrate = premiums[premiums[0][-5:-3] == strike and premiums[0][-2:] == name[-2:]][1] # This chooses the premium rate at the right interval and strike level
+    premiumlabels = [p[0] for p in premiums]
+    targetpremiumlabel = "PRATES_" + str(int(100*strike)) + "_" + name[-2:]
+    targetpremiumindex = premiumlabels.index(targetpremiumlabel)
+    premiumrate = premiums[targetpremiumindex][1]
+#    premiumrate = premiums[premiums[0][-5:-3] == strike and premiums[0][-2:] == name[-2:]][0] # This chooses the premium rate at the right interval and strike level
+
     ############# Protection ##############################################
     # Default Protection amount
     protection = base*strike*productivity*acres*allocation
@@ -936,7 +941,9 @@ def insuranceCalc(index, productivity, strike, acres, allocation, bases, premium
     indemnity = pcf*protection*eligibleindex*payscalar
     
     ############# Return everything #####################
-    return([subsidy,producerpremium,indemnity,totalpremium])  
+    return([subsidy,producerpremium,indemnity,totalpremium])
+    
+    
 ###############################################################################
 ########################## Mask Maker  ########################################
 ############################################################################### 
