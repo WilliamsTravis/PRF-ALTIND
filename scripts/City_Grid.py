@@ -18,7 +18,7 @@ from rasterio.mask import mask
 cities = gpd.read_file("c:/users/user/github/data/shapefiles/citiesx020.shp")
 
 # Extract geometries in geojson format
-cities = [[cities[i].NAME, for i in range(len(cities))]
+#cities = [[cities[i].NAME, for i in range(len(cities))]
 
 # Unpack the coordiates into a list of dictionaries
 from shapely.geometry import mapping

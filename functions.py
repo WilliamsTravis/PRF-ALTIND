@@ -477,7 +477,7 @@ producerpremiums, indemnities, frequencies, pcfs,
     ###########################################################################
     # This dictionary of column names is needed to match information from the actuarial rates to 
         # the appropriate place and time. I do this to maintain readability of the original 
-	# data table. 
+        # data table. Not currently necessary, but this will be useful if we want to adjust this
     colnames1 = {'Grid ID':'gridid','Guarantee Level':'strike','Grazing Interval\n Jan-Feb':'g1',\
     'Grazing Interval\n Feb-Mar':'g2', 'Grazing Interval\n Mar-Apr':'g3','Grazing Interval\n Apr-May':'g4',\
     'Grazing Interval\n May-Jun':'g5','Grazing Interval\n Jun-Jul':'g6','Grazing Interval\n Jul-Aug':'g7',\
@@ -496,6 +496,43 @@ producerpremiums, indemnities, frequencies, pcfs,
     'Haying Interval (irrigated)\n Nov-Dec':'h11'}
     colnames2 = {y:x for x,y in colnames1.items()} # This is backwards to link simplified column 
                                                          # names to get the original ones. 
+    ###########################################################################
+    ################# Define Internal Functions ###############################
+    ###########################################################################
+    def freqCalc(array,strike):
+        strike2 = key.get(strike)
+        array[array<=strike2] = -9999
+        array[array>strike2] = 0
+        array[array == -9999] = 1
+        return(array) 
+    
+    def pcfCalc(array,strike):
+        array[array>strike] = 0
+        strike2 = key.get(strike) # Strike2 to preserve the original strike value
+        pcf = abs((strike2-array)/strike2)
+        pcf[pcf == 1] = 0
+        return(pcf)
+        
+    def premiumLoading(indexlist,pcfs,premiums,bases,strike = .7, interval = 1):
+        # We need strings and numeric strikes and intervals
+        interval_string = "%02d"%interval
+        strike_string = "%02d"%int(strike*100)
+        
+        # Get the pcfs from the right interval, the strike is already incorporated
+        pcf_specific = [p[1] for p in pcfs if p[0][-2:] == interval_string]
+        pcf = np.nanmean(pcf_specific,axis = 0)
+    
+        # Get the right RMA premium rates
+        premium_specific = [p for p in premiums if p[0][-5:-3] == strike_string and p[0][-2:] == interval_string][0][1]
+    
+        # get the ratio
+        ratios = premium_specific/pcf
+        ratio = np.nanmean(ratios)    
+        
+        # Reset the premium. Again, this is specific to each interval and strike level
+        premium = ratio*pcf
+        return premium
+
     ###########################################################################
     ############## Getting all the numbers ####################################
     ###########################################################################    
@@ -524,7 +561,7 @@ producerpremiums, indemnities, frequencies, pcfs,
         # No Alterations
         indexlist = indexlist
         payscalar = 1
-        
+        premiums_filtered = [p for p in premiums if p[0][-5:-3] == "%02d"%int(strike*100)]
     else:
         # Adjust for outliers       
         arrays = [a[1] for a in indexlist]
@@ -587,7 +624,17 @@ producerpremiums, indemnities, frequencies, pcfs,
             payscalar = scalars.get(name)
         else:
             payscalar = 1
-    
+        
+        # Now, we need to overwrite the premium rates unless it is the NOAA index
+        # need pcfs from the full record
+        copylist = [[array[0],np.copy(array[1])] for array in indexlist]
+        pcfrays = [pcfCalc(array[1],strike) for array in copylist]
+        meanpcf = np.nanmean(pcfrays,axis = 0)
+        pcfs = [[indexlist[i][0],pcfrays[i]] for i in range(len(pcfrays))]
+        
+        # We have the strike, now we need the premiums for each interval
+        intervals = [1,2,3,4,5,6,7,8,9,10,11]
+        premiums_filtered = [['PRATES_'+'%02d'%int(strike*100)+'_'+'%02d'%i,premiumLoading(indexlist,pcfs,premiums,bases,strike, i)] for i in intervals]
     
     # Now reduce the list to the calculation period.
     indexlist = [year for year in indexlist if int(year[0][-6:-2]) >= startyear and int(year[0][-6:-2]) <= endyear]
@@ -598,9 +645,9 @@ producerpremiums, indemnities, frequencies, pcfs,
     mask = grid*0+1
     
     #totalsubsidyarrays = [insuranceCalc(array, productivity,strike,acres,allocation,bases,premiums,mask)[0] for array in indexlist]
-    totalpremiums = [[array[0],insuranceCalc(array, productivity,strike,acres,allocation,bases,premiums,mask,key,payscalar)[3]] for array in indexlist]
-    producerpremiums = [[array[0],insuranceCalc(array, productivity,strike,acres,allocation,bases,premiums,mask,key,payscalar)[1]] for array in indexlist]
-    indemnities = [[array[0],insuranceCalc(array, productivity,strike,acres,allocation,bases,premiums,mask,key,payscalar)[2]] for array in indexlist]
+    totalpremiums = [[array[0],insuranceCalc(array, productivity,strike,acres,allocation,bases,premiums_filtered,mask,key,payscalar)[3]] for array in indexlist]
+    producerpremiums = [[array[0],insuranceCalc(array, productivity,strike,acres,allocation,bases,premiums_filtered,mask,key,payscalar)[1]] for array in indexlist]
+    indemnities = [[array[0],insuranceCalc(array, productivity,strike,acres,allocation,bases,premiums_filtered,mask,key,payscalar)[2]] for array in indexlist]
     
     totalpremiumarrays =  [element[1] for element in totalpremiums]
     premiumarrays = [element[1] for element in producerpremiums]
@@ -608,14 +655,8 @@ producerpremiums, indemnities, frequencies, pcfs,
     
     ###########################################################################
     ############## Call the function to get frequencies #######################
-    ###########################################################################
-    def freqCalc(array,strike):
-        strike2 = key.get(strike)
-        array[array<=strike2] = -9999
-        array[array>strike2] = 0
-        array[array == -9999] = 1
-        return(array)    
-    
+    ###########################################################################    
+    # These are for frequencies within the study perios=d
     copylist = [[array[0],np.copy(array[1])] for array in indexlist]
     frequencyrays = [freqCalc(array[1],strike) for array in copylist]
     frequencysum = np.sum(frequencyrays,axis = 0)
@@ -624,17 +665,7 @@ producerpremiums, indemnities, frequencies, pcfs,
     ###########################################################################
     ############## Same for Payout Claculation Factors ########################
     ###########################################################################
-    # The Payment Calculation Factor is the step that adjusts the payout amount proportional 
-        # to the degree of deficit severity. This might be the most useful output.
-        # Lower index values result in higher PCF values (more money)
-        
-    def pcfCalc(array,strike):
-        array[array>strike] = 0
-        strike2 = key.get(strike) # Strike2 to preserve the original strike value
-        pcf = abs((strike2-array)/strike2)
-        pcf[pcf == 1] = 0
-        return(pcf)
-    
+    # These are for pcfs within the study period
     copylist = [[array[0],np.copy(array[1])] for array in indexlist]
     pcfrays = [pcfCalc(array[1],strike) for array in copylist]
     meanpcf = np.nanmean(pcfrays,axis = 0)
@@ -890,7 +921,7 @@ producerpremiums, indemnities, frequencies, pcfs,
 
     return insurance_package_all
      
-     ###############################################################################
+###############################################################################
 ########################## Indemnity Calculator ###############################
 ###############################################################################
 def insuranceCalc(index, productivity, strike, acres, allocation, bases, premiums, mask, key, payscalar):
