@@ -135,15 +135,38 @@ def premiumLoading(indexlist,pcfs,premiums,bases,strike = .7, interval = 1):
     ratio = np.nanmean(ratios)    
     
     premium = ratio*pcf
-    return premium_specific,premium
+    return premium_specific,premium, ratio, np.nanmean(pcf)
 
 
 # Try a few
-strike = .85
-interval = 11
-indexlist,pcfs = getPCFs("noaa",.8)
-original,new = premiumLoading(indexlist,pcfs,premiums,bases,strike, interval)
+strike = .8
+interval = 3
+indexlist,pcfs = getPCFs("noaa",strike)
+justpcfs = [p[1] for p in pcfs]
+pcfmap = np.nanmean(justpcfs,axis = 0)
+original,new, ratio, pcfmean = premiumLoading(indexlist,pcfs,premiums,bases,strike, interval)
+print(ratio)
+
+corr = np.correlate(new,original)
 difference = original - new
 #%varexp --imshow original
 #%varexp --imshow new
-#%varexp --imshow difference
+##%varexp --imshow difference
+#%varexp --imshow pcfmap
+#%varexp --imshow corr
+# Let's get a chart
+intervals = [i for i in range(1,12)]
+strikes = [.7,.75,.8,.85,.9]
+ratio_list = []
+for s in strikes:
+    print(str(s))
+    indexlist,pcfs = getPCFs("noaa",s)
+    for i in intervals:
+        print(str(i))
+        original, new, ratio, pcfmean = premiumLoading(indexlist,pcfs,premiums,bases,s, i)
+        old_premium = np.nanmean(original)
+        new_premium = np.nanmean(new)
+        ratio_list.append([i,s,ratio,pcfmean,old_premium,new_premium])
+
+df = pd.DataFrame(ratio_list)
+df.columns = ["intervals","strike","loading_factor", "average_pcf","old_premium","new_premium"]
