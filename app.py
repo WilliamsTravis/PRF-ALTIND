@@ -132,8 +132,6 @@ Earth Lab – CIRES at the University of Colorado Boulder
 Author: Travis Williams
 Email: Travis.Williams@colorado.edu
 Date: 5-26-2018
-
-
                         '''
 # These become titles for hover info
 description  = ''
@@ -795,11 +793,17 @@ def update_mapinfo(signal):
     signal = json.loads(signal)
     strike_level = signal[3]
         # Description for Info Button:
-    mapinfo = (" Click the map for local information. This shows the average amount of payout potential at each of the available "
-               "grid cells using the experimental index insurance program with a 50% allocation of "
-               "total protection to each insurance interval  from a hypothetical policy on a 500 "
-               "acre ranch at the "+ str(int(strike_level*100)) + "% Strike Level and 100% "
-               "productivity level.")
+    mapinfo = (" Click the map for local information. This shows the " +
+               "average amount of payout potential at each of the available " +
+               "grid cells using the experimental index insurance program " +
+               "with a 50% allocation of total protection to each insurance " +
+               "interval from a hypothetical policy on a 500 acre ranch at " +
+               "the "+ str(int(strike_level*100)) + "% Strike Level and " +
+               "100% productivity level. Scroll to zoom in and out, click " +
+               "and drag to pan, and hold control while clicking and " + 
+               "dragging to change the viewing aspect. Click on any single " +
+               "point to update the information graphs to the right and " + 
+               "below.")
     return mapinfo
 
 # Button3 -> Trend Info Text

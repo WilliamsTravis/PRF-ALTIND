@@ -49,6 +49,7 @@ import numpy.ma as ma
 import os
 import pandas as pd
 import plotly
+import re 
 from textwrap import dedent
 import time
 from tqdm import *
@@ -1214,7 +1215,6 @@ def optimalIntervalExperiment(rasterpath, targetinfo, targetarrayname, studyears
     # This will give the bimonthly intervals associated with the highest two pcfs
         # for each cell
     bests,seconds = optimalIntervals(informingarrays)
-#    seconds = seconds*mask
     
     
     ############### Reset and Build Seasonal Payouts ##########################
@@ -1228,25 +1228,26 @@ def optimalIntervalExperiment(rasterpath, targetinfo, targetarrayname, studyears
     winter = [i for i in targetarrays if i[0][-2:] == '11' or i[0][-2:] == '01']
     spring = [i for i in targetarrays if i[0][-2:] == '02' or i[0][-2:] == '04']
     summer = [i for i in targetarrays if i[0][-2:] == '05' or i[0][-2:] == '07']
-    fall = [i for i in targetarrays if i[0][-2:] == '08' or i[0][-2:] == '10']
+    fall   = [i for i in targetarrays if i[0][-2:] == '08' or i[0][-2:] == '10']
     
     # Get total cell-wise values
     wintersum = np.nansum([i[1] for i in winter],axis = 0)*mask
     springsum = np.nansum([i[1] for i in spring],axis = 0)*mask
     summersum = np.nansum([i[1] for i in summer],axis = 0)*mask
-    fallsum = np.nansum([i[1] for i in fall],axis = 0)*mask
+    fallsum   = np.nansum([i[1] for i in fall],axis = 0)*mask
     
     # Get mean cell-wise values
     wintermean = np.nanmean([i[1] for i in winter],axis = 0)*mask
     springmean = np.nanmean([i[1] for i in spring],axis = 0)*mask
     summermean = np.nanmean([i[1] for i in summer],axis = 0)*mask
-    fallmean = np.nanmean([i[1] for i in fall],axis = 0)*mask
+    fallmean   = np.nanmean([i[1] for i in fall],axis = 0)*mask
     
     # Get max cell-wise values
     wintermax = np.nanmax([i[1] for i in winter],axis = 0)*mask
     springmax = np.nanmax([i[1] for i in spring],axis = 0)*mask
     summermax = np.nanmax([i[1] for i in summer],axis = 0)*mask
-    fallmax = np.nanmax([i[1] for i in fall],axis = 0)*mask
+    fallmax   = np.nanmax([i[1] for i in fall],axis = 0)*mask
+    
     ############### Use Optimal Intervals #####################################
     # We want a map where each cell sums up the payments from the intervals with the
         # two highest mean pcfs
@@ -1293,17 +1294,16 @@ def optimalIntervalExperiment(rasterpath, targetinfo, targetarrayname, studyears
         return optimal
     
     # Now to add up the optimal payouts over the study period
-    years = [str(i) for i in range(studyears[0],studyears[1]+1)]
+    years           = [str(i) for i in range(studyears[0],studyears[1]+1)]
     optimalpayments = [optimalValues(targetarrays,ys,bests,seconds) for ys in tqdm(years)]
-    optimalsum = np.nansum(optimalpayments,axis = 0)*mask
-    optimalmean = np.nanmean(optimalpayments,axis = 0)*mask
-    optimalmax = np.nanmax(optimalpayments,axis = 0)*mask
+    optimalsum      = np.nansum(optimalpayments,axis = 0)*mask
+    optimalmean     = np.nanmean(optimalpayments,axis = 0)*mask
+    optimalmax      = np.nanmax(optimalpayments,axis = 0)*mask
 
     
     ###########################################################################
     ############################## Plot! ######################################
     ###########################################################################
-    
     ############################ Shapefile ####################################
     # Main Title Business
     startyear = 2000
@@ -1687,7 +1687,7 @@ def readRasters2(rasterpath,navalue = -9999):
         del rast
         array = array.astype(float)
         array[array==navalue] = np.nan
-        name = str.upper(names[i][:-4]) #the file name excluding its extention (may need to be changed if the extension length is not 3)
+        name = str.upper(names[i][:-4]) # the file name excluding its extention (may need to be changed if the extension length is not 3)
         alist.append([name,array]) # It's confusing but we need some way of holding these dates. 
     return(alist,geometry,arrayref)
     
@@ -1714,19 +1714,19 @@ def readArrays(path):
 ###########################################################################
 ############## Little Standardization function for differenct scales ######
 ###########################################################################  
-# Min Max Standardization 
-def standardize(indexlist):
-    if type(indexlist[0][0])==str:
-        arrays = [a[1] for a in indexlist]
-    else:
-        arrays = indexlist
-    mins = np.nanmin(arrays)
-    maxes = np.nanmax(arrays)
-    def single(array,mins,maxes):    
-        newarray = (array - mins)/(maxes - mins)
-        return(newarray)
-    standardizedlist = [[indexlist[i][0],single(indexlist[i][1],mins,maxes)] for i in range(len(indexlist))]
-    return(standardizedlist)
+## Min Max Standardization 
+#def standardize(namedlist):
+#    if type(namedlist[0][0])==str:
+#        arrays = [a[1] for a in namedlist]
+#    else:
+#        arrays = namedlist
+#    mins = np.nanmin(arrays)
+#    maxes = np.nanmax(arrays)
+#    def single(array,mins,maxes):    
+#        newarray = (array - mins)/(maxes - mins)
+#        return(newarray)
+#    standardizedlist = [[indexlist[i][0],single(indexlist[i][1],mins,maxes)] for i in range(len(indexlist))]
+#    return(standardizedlist)
 
 # SD Standardization
 def standardize2(indexlist):
