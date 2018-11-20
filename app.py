@@ -10,16 +10,17 @@ import os
 
 if platform == 'win32':
     homepath = "C:/users/user/github/"
+    payoutpath = "D:/"
     os.chdir(homepath + "PRF-ALTIND")
 else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
 
-#############################################################################################################################
+###############################################################################
 from functions import *
 
 # In[]:
-############################ Set up initial Signal and data #################################################################
+############################ Set up initial Signal and data ###################
 import warnings
 warnings.filterwarnings("ignore") # The empty slice warnings are too much
 
@@ -44,22 +45,26 @@ cities = [{'label':cities_df['NAME'][i]+", "+ cities_df['STATE'][i],
            'value':cities_df['grid'][i]} for i in range(len(cities_df))]
 #cities_df = cities_df.sort_values('POP',ascending = False)
 
-############################# Set Scales by Signal ##########################################################################
-# Create a dictionary that finds the max values for each strike level and return type
+############################# Set Scales by Signal ############################
+# Create dictionary that finds max values for each strike level and return type
 scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
 
-############################# Option #2: Calculate Payouts ##################################################################
-# This option will be necessary for the full app of the future. Currently, all of the payouts are pre-calculated
-    # for speed in the online app. This is because I haven't quite yet figured out installation of gdal or rasterio
-    # on the virtual linux machine. Once that happens we'll be able to calculate hypothetical payouts back to 1948 
-    # (or longer) and adjust the baseline rate to see what happens with that as well. This would also allow for 
-    # customization of acreage, allocation, productivity level, etc. I believe it will necessarily be slightly 
-    # slower when calculating the initial insurance package of any individual index but will not slow responsivity
-    # once the first call is returned. 
+############################# Option #2: Calculate Payouts ####################
+# This option will be necessary for the full app of the future. Currently, all
+    # of the payouts are pre-calculated for speed in the online app. This is
+    # because I haven't quite yet figured out installation of gdal or rasterio
+    # on the virtual linux machine. Once that happens we'll be able to
+    # calculate hypothetical payouts back to 1948 (or longer) and adjust the
+    # baseline rate to see what happens with that as well. This would also
+    # allow for customization of acreage, allocation, productivity level, etc.
+    # I believe it will necessarily be slightly slower when calculating the
+    # initial insurance package of any individual index but will not slow
+    # responsivity once the first call is returned. 
     
-########################## Load Index Arrays ################################################################################
+######################### Load Index Arrays ##################################
 ## Actuarial Rates
-#indices = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1','spei2','spei3','spei6']
+#indices = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1',
+# 'spei2','spei3','spei6']
 #
 ## Actuarial rate paths -- to be simplified
 #with np.load(homepath + 'data/actuarial/premium_arrays_2017.npz') as data:
@@ -94,8 +99,8 @@ scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
 #    data.close()
 #bases2018 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
 
-######################### Total Project Description #########################################################################
-#description= open("README.txt").read() # Does anyone know how justify a text file for RMarkdown?
+######################### Total Project Description ###########################
+#description= open("README.txt").read() # replace with text file
 description_text = '''
 ##### Pasture, Rangeland, and Forage Rainfall-Index Insurance Program Alternate Index Project
 
@@ -134,7 +139,7 @@ Email: Travis.Williams@colorado.edu
 Date: 5-26-2018
 
 
-                        '''
+'''
 # These become titles for hover info
 description  = ''
 mapinfo = ''
@@ -148,8 +153,9 @@ seriesinfo = ''
 # Create Dash Application Object
 app = dash.Dash(__name__)
 
-# The stylesheet is based one of the DASH examples (oil and gas extraction in New York)
-app.css.append_css({'external_url': 'https://rawgit.com/WilliamsTravis/PRF-USDM/master/dash-stylesheet.css'})
+# The stylesheet is based one of the DASH examples
+app.css.append_css({'external_url':
+    'https://rawgit.com/WilliamsTravis/PRF-USDM/master/dash-stylesheet.css'})
 
 # Create server object
 server = app.server
@@ -157,10 +163,9 @@ server = app.server
 # No idea
 #CORS(server)
 
-# Create and initialize a cache for storing data - data pocket - not totally sure about this yet.
-cache = Cache(config = {'CACHE_TYPE':'simple'})
+# Create and initialize a cache for storing data - data pocket
+cache = Cache(config = {'CACHE_TYPE': 'simple'})
 cache.init_app(server)
-
 
 # In[]:
 ###############################################################################
@@ -168,18 +173,22 @@ cache.init_app(server)
 ###############################################################################
 # Index Paths
 # Index names, using the paths we already have. These are for titles.
-indices = [{'label':'Rainfall Index','value':'noaa'},
-           {'label':'PDSI','value':'pdsi'},
-           {'label':'PDSI-Self Calibrated','value':'pdsisc'},
-           {'label':'Palmer Z Index','value':'pdsiz'},
-           {'label':'SPI-1' ,'value': 'spi1'},
-           {'label':'SPI-2' ,'value': 'spi2'},
-           {'label':'SPI-3' ,'value': 'spi3'},
-           {'label':'SPI-6' ,'value': 'spi6'},
-           {'label':'SPEI-1' ,'value': 'spei1'},
-           {'label':'SPEI-2' ,'value': 'spei2'},
-           {'label':'SPEI-3' ,'value': 'spei3'},
-           {'label':'SPEI-6','value': 'spei6'}]
+indices = [{'label': 'Rainfall Index', 'value': 'noaa'},
+           {'label': 'PDSI', 'value': 'pdsi'},
+           {'label': 'PDSI-Self Calibrated', 'value': 'pdsisc'},
+           {'label': 'Palmer Z Index', 'value': 'pdsiz'},
+           {'label': 'SPI-1', 'value': 'spi1'},
+           {'label': 'SPI-2', 'value': 'spi2'},
+           {'label': 'SPI-3', 'value': 'spi3'},
+           {'label': 'SPI-6', 'value': 'spi6'},
+           {'label': 'SPEI-1', 'value': 'spei1'},
+           {'label': 'SPEI-2', 'value': 'spei2'},
+           {'label': 'SPEI-3', 'value': 'spei3'},
+           {'label': 'SPEI-6', 'value': 'spei6'},
+           {'label': 'EDDI-1', 'value': 'eddi1'},
+           {'label': 'EDDI-2', 'value': 'eddi2'},
+           {'label': 'EDDI-3', 'value': 'eddi3'},
+           {'label': 'EDDI-6', 'value': 'eddi6'}]
 
 indexnames = {'noaa': 'NOAA CPC-Derived Rainfall Index',
               'pdsi': 'Palmer Drought Severity Index',
@@ -189,83 +198,98 @@ indexnames = {'noaa': 'NOAA CPC-Derived Rainfall Index',
               'spi2':'Standardized Precipitation Index - 2 month',
               'spi3':'Standardized Precipitation Index - 3 month',
               'spi6':'Standardized Precipitation Index - 6 month',
-              'spei1': 'Standardized Precipitation-Evapotranspiration Index - 1 month',
-              'spei2': 'Standardized Precipitation-Evapotranspiration Index - 2 month',
-              'spei3': 'Standardized Precipitation-Evapotranspiration Index - 3 month',
-              'spei6': 'Standardized Precipitation-Evapotranspiration Index - 6 month'}
+              'spei1': 'Standardized Precipitation-Evapotranspiration Index' +
+                       ' - 1 month',
+              'spei2': 'Standardized Precipitation-Evapotranspiration Index' +
+                       ' - 2 month',
+              'spei3': 'Standardized Precipitation-Evapotranspiration Index' +
+                       ' - 3 month',
+              'spei6': 'Standardized Precipitation-Evapotranspiration Index' +
+                       ' - 6 month',
+              'eddi1': 'Evaporative Demand Drought Index - 1 month',
+              'eddi2': 'Evaporative Demand Drought Index - 2 month',
+              'eddi3': 'Evaporative Demand Drought Index - 3 month',
+              'eddi6': 'Evaporative Demand Drought Index - 6 month'}
 
 # This is for accessing the dataset
-returns = [{'label':'Potential Producer Premiums','value':'premiums'},
-          {'label':'Potential Indemnities','value':'indemnities'},
-          {'label':'Potential Payout Frequencies','value':'frequencies'},
-          {'label':'Potential Payment Calculation Factors','value':'pcfs'},
-          {'label':'Potential Net Payouts','value':'nets'},
-          {'label':'Potential Loss Ratios','value':'lossratios'}]
+returns = [{'label': 'Potential Producer Premiums', 'value': 'premiums'},
+          {'label': 'Potential Indemnities', 'value': 'indemnities'},
+          {'label': 'Potential Payout Frequencies', 'value': 'frequencies'},
+          {'label': 'Potential Payment Calculation Factors', 'value': 'pcfs'},
+          {'label': 'Potential Net Payouts', 'value': 'nets'},
+          {'label': 'Potential Loss Ratios', 'value': 'lossratios'}]
 
 # These get the right number for the return type chosen
-returnumbers = {'premiums':0,
-               'indemnities':1,
-               'frequencies':2,
-               'pcfs':3,
-               'nets':4,
-               'lossratios':5}
+returnumbers = {'premiums': 0,
+               'indemnities': 1,
+               'frequencies': 2,
+               'pcfs': 3,
+               'nets': 4,
+               'lossratios': 5}
 
 # This is for labeling
-returndict = {'premiums':'Potential Producer Premiums',
-               'indemnities':'Potential Indemnities',
-               'frequencies':'Potential Payout Frequencies',
-               'pcfs':'Potential Payment Calculation Factors',
-               'nets':'Potential Net Payouts',
-               'lossratios':'Potential Loss Ratios'}
-trenddict = {'premiums':'Average Premium ($)',
-               'indemnities':'Average Indemnity ($)',
-               'frequencies':'Average Payout Frequency',
-               'pcfs':'Average Payment Calculation Factor',
-               'nets':'Average Net Payout ($)',
-               'lossratios':'Average Loss Ratio'}
-seriesdict = {'premiums':'Premium ($)',
-               'indemnities':'Indemnity ($)',
-               'frequencies':'Payout Frequency',
-               'pcfs':'Payment Calculation Factor',
-               'nets':'Net Payout ($)',
-               'lossratios':'Loss Ratio'}
+returndict = {'premiums': 'Potential Producer Premiums',
+               'indemnities': 'Potential Indemnities',
+               'frequencies': 'Potential Payout Frequencies',
+               'pcfs': 'Potential Payment Calculation Factors',
+               'nets': 'Potential Net Payouts',
+               'lossratios': 'Potential Loss Ratios'}
+trenddict = {'premiums': 'Average Premium ($)',
+               'indemnities': 'Average Indemnity ($)',
+               'frequencies': 'Average Payout Frequency',
+               'pcfs': 'Average Payment Calculation Factor',
+               'nets': 'Average Net Payout ($)',
+               'lossratios': 'Average Loss Ratio'}
+seriesdict = {'premiums': 'Premium ($)',
+               'indemnities': 'Indemnity ($)',
+               'frequencies': 'Payout Frequency',
+               'pcfs': 'Payment Calculation Factor',
+               'nets': 'Net Payout ($)',
+               'lossratios': 'Loss Ratio'}
 # Strike levels
-strikes = [{'label':'70%','value':.70},
-          {'label':'75%','value':.75},
-          {'label':'80%','value':.80},
-          {'label':'85%','value':.85},
-          {'label':'90%','value':.90}]
+strikes = [{'label': '70%', 'value': .70},
+           {'label': '75%', 'value': .75},
+           {'label': '80%', 'value': .80},
+           {'label': '85%', 'value': .85},
+           {'label': '90%', 'value': .90}]
 
 # Map types'light', 'basic', 'outdoors', 'satellite', or 'satellite-streets'
-maptypes = [{'label':'Light','value':'light'},
-            {'label':'Dark','value':'dark'},
-            {'label':'Basic','value':'basic'},
-            {'label':'Outdoors','value':'outdoors'},
-            {'label':'Satellite','value':'satellite'},
-            {'label':'Satellite Streets','value':'satellite-streets'}]
+maptypes = [{'label': 'Light', 'value': 'light'},
+            {'label': 'Dark', 'value': 'dark'},
+            {'label': 'Basic', 'value': 'basic'},
+            {'label': 'Outdoors', 'value': 'outdoors'},
+            {'label': 'Satellite', 'value': 'satellite'},
+            {'label': 'Satellite Streets', 'value': 'satellite-streets'}]
 
-# Year Markes for Slider
-years = [int(y) for y in range(2000,2018)]
-yearmarks =dict(zip(years,years))
+# Year Marks for Slider
+years = [int(y) for y in range(1948, 2018)]
+yearmarks = dict(zip(years, years))
+for y in yearmarks:
+    if y % 5 != 0:
+        yearmarks[y] = ""
+
 # Data Frame Column Names
-dfcols = [{'label':"DI: Drought Index", 'value': 1},
-         { 'label':"AY: Actuarial Year", 'value': 2},
-         {'label':"ICOV: Index Coefficient of Variance", 'value': 3},
-         { 'label':"S: Strike" , 'value': 4},
-#         { 'label':" B.R.: Baseline Year Range", 'value': 5},
-#         { 'label':"S.R.: Study Year Range", 'value': 6},
-         { 'label':"TS: Temporal Scale", 'value': 5},
-         { 'label':"MAXP: Max Payment", 'value': 6},
-         { 'label':"MINP: Minimum Payment", 'value': 7},
-         { 'label':"MEDP: Median Payment", 'value': 8},
-         { 'label':"MEANP: Mean Payment", 'value': 9},
-         { 'label':"PSD: Payment Standard Deviation", 'value': 10},
-         { 'label':"MOSDP: Monthly Payment Standard Deviation", 'value': 11},
-         { 'label':"MEANPCF: Mean Payment Calculation Factor", 'value': 12},
-         { 'label':"SDPCF: Payment Calculation Factor Standard Deviation", 'value': 13},
-         { 'label':"MOSDPCF: Monthly Payment Calculation Factor Standard Deviation", 'value': 14},
-         { 'label':"MEANPF: Mean Payout Frequency", 'value': 15},
-         { 'label':"MOSDPF: Monthly Payout Frequency Standard Deviation", 'value': 16}]
+dfcols = [{'label': "DI: Drought Index", 'value': 1},
+          {'label': "AY: Actuarial Year", 'value': 2},
+          {'label': "ICOV: Index Coefficient of Variance", 'value': 3},
+          {'label': "S: Strike", 'value': 4},
+#         {'label':" B.R.: Baseline Year Range", 'value': 5},
+#         {'label':"S.R.: Study Year Range", 'value': 6},
+          {'label': "TS: Temporal Scale", 'value': 5},
+          {'label': "MAXP: Max Payment", 'value': 6},
+          {'label': "MINP: Minimum Payment", 'value': 7},
+          {'label': "MEDP: Median Payment", 'value': 8},
+          {'label': "MEANP: Mean Payment", 'value': 9},
+          {'label': "PSD: Payment Standard Deviation", 'value': 10},
+          {'label': "MOSDP: Monthly Payment Standard Deviation", 'value': 11},
+          {'label': "MEANPCF: Mean Payment Calculation Factor", 'value': 12},
+          {'label': "SDPCF: Payment Calculation Factor Standard Deviation", 
+           'value': 13},
+          {'label': "MOSDPCF: Monthly Payment Calculation Factor" +
+           " Standard Deviation", 'value': 14},
+          {'label': "MEANPF: Mean Payout Frequency", 'value': 15},
+          {'label': "MOSDPF: Monthly Payout Frequency Standard Deviation",
+           'value': 16}]
 
 # Create Coordinate Index - because I can't find the array position in the
 # click event!
@@ -275,11 +299,12 @@ lons = [-130 + .25*x for x in range(0,300)]
 lats = [49.75 - .25*x for x in range(0,120)]
 londict = dict(zip(lons, xs))
 latdict = dict(zip(lats, ys))
-londict2  = {y:x for x,y in londict.items()} # This is backwards to link simplified column
-latdict2  = {y:x for x,y in latdict.items()} # This is backwards to link simplified column
+londict2  = {y: x for x, y in londict.items()}
+latdict2  = {y: x for x, y in latdict.items()}
 
 # Create global chart template
-mapbox_access_token = 'pk.eyJ1IjoidHJhdmlzc2l1cyIsImEiOiJjamZiaHh4b28waXNkMnptaWlwcHZvdzdoIn0.9pxpgXxyyhM6qEF_dcyjIQ'
+mapbox_access_token = ('pk.eyJ1IjoidHJhdmlzc2l1cyIsImEiOiJjamZiaHh4b28waXNk' +
+                       'MnptaWlwcHZvdzdoIn0.9pxpgXxyyhM6qEF_dcyjIQ')
 
 # In[]:
 # Map Layout:
@@ -294,9 +319,8 @@ layout = dict(
         r=35,
         b=65,
         t=95,
-        pad = 4
+        pad=4
     ),
-
     hovermode="closest",
     plot_bgcolor="#eee",
     paper_bgcolor="#083C04",
@@ -304,7 +328,7 @@ layout = dict(
     title='<b>Potential Payout Frequencies</b>',
     mapbox=dict(
         accesstoken=mapbox_access_token,
-        style="satellite-streets",#'light', 'basic', 'outdoors', 'satellite', or 'satellite-streets'
+        style="satellite-streets",  #'light', 'basic', 'outdoors', 'satellite'
         center=dict(
             lon= -95.7,
             lat= 37.1
@@ -330,11 +354,13 @@ app.layout = html.Div(
                         'position': 'static'
                         },
                             ),
-                        href = "https://www.colorado.edu/earthlab/",
-                        target = "_blank"
+                        href="https://www.colorado.edu/earthlab/",
+                        target="_blank"
                         ),
                 html.A(html.Img(
-                    src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/wwa_logo2015.png?raw=true",
+                    src = ('https://github.com/WilliamsTravis/Pasture-' +
+                           'Rangeland-Forage/blob/master/data/' +
+                           'wwa_logo2015.png?raw=true'),
                     className='one columns',
                     style={
                         'height': '50',
@@ -347,7 +373,9 @@ app.layout = html.Div(
                         target = "_blank"
                             ),
                  html.A(html.Img(
-                    src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/nidis.png?raw=true",
+                    src =( "https://github.com/WilliamsTravis/Pasture-" +
+                          "Rangeland-Forage/blob/master/data/" +
+                          "nidis.png?raw=true"),
                     className='one columns',
                     style={
                         'height': '50',
@@ -360,14 +388,16 @@ app.layout = html.Div(
                         target = "_blank"
                         ),
                  html.A(html.Img(
-                    src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/cires.png?raw=true",
+                    src = ("https://github.com/WilliamsTravis/Pasture-" +
+                           "Rangeland-Forage/blob/master/data/" +
+                           "cires.png?raw=true"),
                     className='one columns',
                     style={
                         'height': '50',
                         'width': '100',
                         'float': 'right',
                         'position': 'relative',
-                        'margin-right':'20',
+                        'margin-right': '20',
                         },
                             ),
                         href = "https://cires.colorado.edu/",
@@ -377,7 +407,7 @@ app.layout = html.Div(
                 ],
                 className = 'row'
                 ),
-        html.Div(# One
+        html.Div(
             [
                 html.H1(
                     'Drought Index Insurance Analysis Laboratory',
@@ -393,33 +423,33 @@ app.layout = html.Div(
             ],
             className='row' ,
             style = {
-                    'font-weight':'bold',
-                     'text-align':'center',
-                     'margin-top':'40',
-                     'margin-bottom':'40'
+                    'font-weight': 'bold',
+                     'text-align': 'center',
+                     'margin-top': '40',
+                     'margin-bottom': '40'
                      }
         ),
             html.Div(
                     [
-                        dcc.Markdown(id = "description",
-                                    children = description)
+                        dcc.Markdown(id="description",
+                                    children=description)
                     ],
-                    style = {'text-align':'justify',
-                             'margin-left':'150',
-                             'margin-right':'150'}
+                    style = {'text-align': 'justify',
+                             'margin-left': '150',
+                             'margin-right': '150'}
                     ),
                 html.Div(
                     [
-                        dcc.Markdown(id = "loading...",
-                                    children = description)
+                        dcc.Markdown(id="loading...",
+                                    children=description)
                     ],
-                    style = {'text-align':'justify',
-                             'margin-left':'150',
-                             'margin-right':'150'}
+                    style = {'text-align': 'justify',
+                             'margin-left': '150',
+                             'margin-right': '150'}
                     ),
 
         # Year Slider Text
-        html.Div(# Two
+        html.Div(
             [
                 html.H5(
                     '',
@@ -444,9 +474,9 @@ app.layout = html.Div(
                 dcc.RangeSlider(
                     id='year_slider',
                     value=[2000, 2017],
-                    min=2000,
+                    min=1948,
                     max=2017,
-                    marks = yearmarks
+                    marks=yearmarks
                 ),
 #                html.P('Baseline Average Year Range'),
 #                dcc.RangeSlider(
@@ -506,15 +536,15 @@ app.layout = html.Div(
                         dcc.RadioItems(
                             id='actuarial_year',
                             value=2018,
-                            options=[{'label':'2017','value':2017},
-                                      {'label':'2018','value':2018}],
+                            options=[{'label': '2017', 'value': 2017},
+                                      {'label': '2018', 'value': 2018}],
                             labelStyle={'display': 'inline-block'}
                         ),
 
                         html.Button(id='submit', 
                                     type='submit', 
-                                    n_clicks = 0, 
-                                    n_clicks_timestamp = '0',
+                                    n_clicks=0, 
+                                    n_clicks_timestamp='0',
                                     children='submit')
 
                     ],
@@ -524,30 +554,30 @@ app.layout = html.Div(
                 html.Div([
                         html.P("Map Type"),
                         dcc.Dropdown(
-                                id = "map_type",
-                                value = "light",
-                                options = maptypes, #'light', 'dark','basic', 'outdoors', 'satellite', or 'satellite-streets'   
-                                multi = False
+                                id="map_type",
+                                value="light",
+                                options=maptypes, #'light', 'dark','basic', 'outdoors', 'satellite', or 'satellite-streets'   
+                                multi=False
                                     ),
                         html.P(" "),
                         html.P("RMA Grid ID"),
                         dcc.Dropdown(
-                                id = "grid_choice",
-                                value = 24099,
-                                placeholder = "Type Grid ID",
-                                options = grids,
-                                multi = False,
-                                searchable = True
+                                id="grid_choice",
+                                value=24099,
+                                placeholder="Type Grid ID",
+                                options=grids,
+                                multi=False,
+                                searchable=True
                                 ),
                         html.P(" "),
                         html.P("City"),
                         dcc.Dropdown(
-                                id = "city_choice",
-                                value = 24099,
-                                placeholder = "Type city name",
-                                options = cities,
-                                multi = False,
-                                searchable = True
+                                id="city_choice",
+                                value=24099,
+                                placeholder="Type city name",
+                                options=cities,
+                                multi=False,
+                                searchable=True
                                 ),
 
                     ],
@@ -694,11 +724,10 @@ def global_store(signal):
     
     
     ################## Option #1: Retrieve Payouts ###########################
-    path = (homepath + "data/payouts/AY" + str(actuarialyear) + 
-               "/" + str(int(strike*100)) + "/" 
-                 + returntype + "/" +
-                   index
-                  )
+    #  I am now storing the windows payout data on a d drive...fix this
+    path = (payoutpath + "data/payouts/AY" + str(actuarialyear) + 
+               "/" + str(int(strike*100)) + "/" +
+               returntype + "/" + index)
     with np.load(path + "/arrays.npz") as data:
         arrays = data.f.arr_0
         data.close()        
@@ -1246,7 +1275,7 @@ def makeTrendBar(clickData,signal,targetid):
         yaxis = dict(
                 title = trenddict.get(return_type),
                 autorange = False,
-                range = [ylow,max(averages)*1.2],
+                range = [ylow, max(averages)*1.2],
                 type = 'linear'
                 )
         annotation = dict(

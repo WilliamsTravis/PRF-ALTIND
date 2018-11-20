@@ -8,20 +8,27 @@ Created on Fri Jun  8 20:48:33 2018
 import os
 os.chdir(r"C:\Users\User\github\PRF-ALTIND")
 from functions import *
-mask = readRaster("e:\\data\\droughtindices\\masks\\nad83\\mask4.tif",1,-9999)[0]
-indexnames = ['e:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\',
-              'e:\\data\\droughtindices\\palmer\\pdsi\\nad83\\',
-              'e:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\',
-              'e:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\',
-              'e:\\data\\droughtindices\\spi\\nad83\\1month\\',
-              'e:\\data\\droughtindices\\spi\\nad83\\2month\\',
-              'e:\\data\\droughtindices\\spi\\nad83\\3month\\',
-              'e:\\data\\droughtindices\\spi\\nad83\\6month\\',
-              'e:\\data\\droughtindices\\spei\\nad83\\1month\\', 
-              'e:\\data\\droughtindices\\spei\\nad83\\2month\\', 
-              'e:\\data\\droughtindices\\spei\\nad83\\3month\\', 
-              'e:\\data\\droughtindices\\spei\\nad83\\6month\\']
-savenames = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1','spei2','spei3','spei6']
+os.chdir("C:/users/user/github/")
+mask = readRaster("d:\\data\\masks\\nad83\\mask25.tif",1,-9999)[0]
+indexnames = ['d:\\data\\droughtindices\\noaa\\nad83\\indexvalues\\',
+              'd:\\data\\droughtindices\\palmer\\pdsi\\nad83\\',
+              'd:\\data\\droughtindices\\palmer\\pdsisc\\nad83\\',
+              'd:\\data\\droughtindices\\palmer\\pdsiz\\nad83\\',
+              'd:\\data\\droughtindices\\spi\\nad83\\1month\\',
+              'd:\\data\\droughtindices\\spi\\nad83\\2month\\',
+              'd:\\data\\droughtindices\\spi\\nad83\\3month\\',
+              'd:\\data\\droughtindices\\spi\\nad83\\6month\\',
+              'd:\\data\\droughtindices\\spei\\nad83\\1month\\', 
+              'd:\\data\\droughtindices\\spei\\nad83\\2month\\', 
+              'd:\\data\\droughtindices\\spei\\nad83\\3month\\', 
+              'd:\\data\\droughtindices\\spei\\nad83\\6month\\',
+              'd:\\data\\droughtindices\\eddi\\nad83\\1month\\',
+              'd:\\data\\droughtindices\\eddi\\nad83\\2month\\',
+              'd:\\data\\droughtindices\\eddi\\nad83\\3month\\',
+              'd:\\data\\droughtindices\\eddi\\nad83\\6month\\']
+savenames = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6',
+             'spei1','spei2','spei3','spei6', 'eddi1', 'eddi2', 'eddi3',
+             'eddi6']
 
 for i in tqdm(range(len(indexnames))):
     arraylist = readRasters2(indexnames[i], -9999)[0]

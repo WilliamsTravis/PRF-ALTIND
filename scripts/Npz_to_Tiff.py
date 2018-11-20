@@ -20,14 +20,33 @@ os.chdir(r'C:\Users\user\Github')
 grid, geom, proj = readRaster("data/prfgrid.tif",1,-9999)
   
 # Read in the numpy arrays and file names
-with np.load("data/indices/pdsisc_arrays.npz") as data:
+with np.load("data/indices/noaa_arrays.npz") as data:
     arrays = data.f.arr_0
     data.close()
-with np.load("data/indices/pdsisc_dates.npz") as data:
+with np.load("data/indices/noaa_dates.npz") as data:
     names = data.f.arr_0
     data.close()
 timeseries = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
 
 # Now write to a file
-savefolder = "data/rasters/nad83/pdsisc"
+savefolder = "data/rasters/nad83/noaa"
 toRasters(timeseries,savefolder,geom,proj)
+
+
+#
+## Where are we?
+#loc = np.where(grid == 24099)
+#
+## Just arrays
+#arrays = [a[1] for a in timeseries]
+#
+## Just boulder
+#boulder = [[a[0], a[1][loc]] for a in timeseries]
+#
+#dates = [b[0] for b in boulder]
+#numbers = [b[1] for b in boulder]
+#
+#rows = dict(zip(dates,numbers))
+#
+#import pandas as pd
+#df = pd.DataFrame(rows)

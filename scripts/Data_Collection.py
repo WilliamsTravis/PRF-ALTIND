@@ -2,7 +2,8 @@
 """
 Created on Thu Mar 22 12:47:52 2018
     
-******* Careful This script is from the research folder that reads the rasters and not numpy arrays in! Change, first"***********
+******* Careful This script is from the research folder that reads the rasters
+                             and not numpy arrays in! Change, first"***********
 Collecting all the information from each index and set of parameters
 
 @author: trwi0358
@@ -111,8 +112,20 @@ for i in indices:
             print("Choosing Strike Level..." + str(s))
             iteration += 1 
             print("Building Dataset...")
-            data = indexInsurance(indexlist,grid, premiums, bases, ay, [2000,2017], [1948,2016], 1, 
-                                   s, 500, .5,difference = 0, scale = True,plot = False)
+            data = indexInsurance(indexlist,
+                                  grid, 
+                                  premiums, 
+                                  bases, 
+                                  ay, 
+                                  [2000,2017], 
+                                  [1948,2016], 
+                                  1, 
+                                  s, 
+                                  500, 
+                                  .5,
+                                  difference = 0,
+                                  scale = True,
+                                  plot = False)
             strike = s
             if "-" in name:
                 scale = int(name[-1:])
