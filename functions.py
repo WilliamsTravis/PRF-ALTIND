@@ -579,6 +579,10 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
         premiums_filtered = [p for p in premiums if
                              p[0][-5:-3] == "%02d" % int(strike * 100)]
     else:
+        # This was confusing at first
+        if "EDDI" in indexname:
+            indexlist = [[a[0], a[1]*-1] for a in indexlist]
+        
         # Adjust for outliers
         arrays = [a[1] for a in indexlist]
         sd = np.nanstd(arrays)
@@ -597,7 +601,7 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
         indexlist = standardize(indexlist)
 
         # Find Matching Probability for strike level
-        keydf = pd.read_csv( "C:/users/user/github/data/Index_Adjustments/" +
+        keydf = pd.read_csv("C:/users/user/github/data/Index_Adjustments/" +
                             "newstrikes.csv")
 
         if indexname not in list(keydf['index']):
@@ -639,7 +643,7 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
                                    "index_ratios_bystrike.csv")
 
             # if indexname.lower() not in scalardf['index']:  # Automate this
-                
+
             scalardf['indexid'] = (scalardf['index'] + "_" +
                                    scalardf['strike'].astype(str))
             scalars = dict(zip(scalardf['indexid'], scalardf['ratio']))

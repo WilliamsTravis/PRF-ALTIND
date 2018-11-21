@@ -23,10 +23,10 @@ homepath = ''
 grid = readRaster("data/rma/prfgrid.tif", 1, -9999)[0]
 ########################## Load Index Arrays #################################################################################
 # Actuarial Rates
-# indices = ['noaa', 'pdsi', 'pdsisc', 'pdsiz', 'spi1', 'spi2', 'spi3',
-#            'spi6', 'spei1', 'spei2', 'spei3', 'spei6', 'eddi1', 'eddi2',
-#            'eddi3', 'eddi6']
-indices = ['eddi1', 'eddi2', 'eddi3', 'eddi6']
+indices = ['noaa', 'pdsi', 'pdsisc', 'pdsiz', 'spi1', 'spi2', 'spi3',
+           'spi6', 'spei1', 'spei2', 'spei3', 'spei6', 'eddi1', 'eddi2',
+           'eddi3', 'eddi6']
+
 
 # Actuarial rate paths -- to be simplified
 premiums2017 = npzIn('data/actuarial/premium_arrays_2017.npz',
@@ -42,17 +42,17 @@ bases2018 = npzIn('data/actuarial/base_arrays_2018.npz',
 # Indices
 arraydict = []
 for i in tqdm(range(len(indices)), position=0):
-    timeseries = npzIn("data/indices/"+indices[i]+"_arrays.npz",
-                       "data/indices/"+indices[i]+"_dates.npz")
+    timeseries = npzIn("data/indices/" + indices[i] + "_arrays.npz",
+                       "data/indices/" + indices[i] + "_dates.npz")
     arraydict.append(timeseries)
 
 arraydict = {indices[i]:arraydict[i] for i in range(len(indices))}
 gc.collect(2)
+
 # Strike level
 strikes = [.7, .75, .8, .85, .9]
 
 # Info Type
-# producerpremiums,indemnities,frequencies,pcfs,nets, lossratios,meanppremium,meanindemnity,frequencysum,meanpcf, net, lossratio
 infotype = [i for i in range(6, 12)]
 
 # Actuarial Year
@@ -62,7 +62,8 @@ actuarialyears = [2017, 2018]
 acres = 500
 
 # In[] Switching to the D Drive, not enough space on my computer
-os.chdir("d:/")
+os.chdir("d:/data/prf_altind/limited")
+
 # rasterpath, actuarialyear, studyears, baselineyears, productivity, strike,
 # acres, allocation,difference = 0, scale = True, plot = True
 for p in range(len(indices)):
@@ -83,7 +84,7 @@ for p in range(len(indices)):
                                 premiums,
                                 bases,
                                 ay, # Actuarial Year
-                                [1948, 2018],  # Study years
+                                [1980, 2018],  # Study years
                                 [1948, 2016],  # Baseline
                                 1,  # Productivity
                                 s,  # Strike
@@ -166,7 +167,7 @@ for p in range(len(indices)):
             
             # Instead of Pickling use a numpy specific file 
             arrays = df[4]            
-            dates = pd.DataFrame([a[0] for a in arrays]) # Also, just to keep things solid, lets save the dates. 
+            dates = pd.DataFrame([a[0] for a in arrays])
             dates.columns = ["dates"]
             jarrays = np.array([a[1] for a in arrays])
             np.savez_compressed("data\\payouts\\AY"
@@ -182,7 +183,7 @@ for p in range(len(indices)):
 
             # Instead of Pickling use a numpy specific file 
             arrays = df[5]            
-            dates = pd.DataFrame([a[0] for a in arrays]) # Also, just to keep things solid, lets save the dates. 
+            dates = pd.DataFrame([a[0] for a in arrays])
             dates.columns = ["dates"]
             jarrays = np.array([a[1] for a in arrays])
             np.savez_compressed("data\\payouts\\AY" + str(ay) + "\\" +

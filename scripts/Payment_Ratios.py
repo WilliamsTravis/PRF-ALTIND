@@ -61,8 +61,11 @@ strikes = [.7, .75, .8, .85, .9]
 acres = 500
 allocation = .5
 difference = 0  # 0 = indemnities, 1 = net payouts, 2 = lossratios
-# Actuarial rate paths -- to be simplified
 
+
+# Actuarial rate paths -- to be simplified
+grid = readRaster("C:/users/user/github/data/rma/nad83/prfgrid.tif",
+                  1, -9999)[0]
 premiums = npzIn('C:/USERS/USER/GITHUB/data/actuarial/premium_arrays_2018.npz',
                  'C:/USERS/USER/GITHUB/data/actuarial/premium_dates_2018.npz')
 
@@ -72,7 +75,7 @@ bases = npzIn('C:/USERS/USER/GITHUB/data/actuarial/base_arrays_2018.npz',
 ############################ Normal NOAA Method ###############################
 noaas = []
 for i in range(len(strikes)):
-    [producerpremiums, indemnities, frequencies, pcfs, nets, 
+    [producerpremiums, indemnities, frequencies, pcfs, nets,
      lossratios, meanppremium, meanindemnity, frequencysum,
      meanpcf, net, lossratio] = indexInsurance(noaapath,
                                                grid,
@@ -111,7 +114,7 @@ for i in range(len(paths)):
                                                    studyears,
                                                    baselineyears,
                                                    productivity,
-                                                   strikes[i],
+                                                   strikes[s],
                                                    acres,
                                                    allocation,
                                                    difference,
@@ -152,7 +155,7 @@ for i in range(len(paths)):
                                                    studyears,
                                                    baselineyears,
                                                    productivity,
-                                                   strikes[i],
+                                                   strikes[s],
                                                    acres,
                                                    allocation,
                                                    difference,
@@ -182,5 +185,7 @@ scalars2.columns = ['index', 'ratio2']
 # Join and generate the composite ratio
 scalars3 = pd.merge(scalars1, scalars2, on = 'index')
 scalars3['ratio'] = scalars3['ratio1'] * scalars3['ratio2']
+
+
 scalars3.to_csv("C:/users/user/github/data/Index_Adjustments/" +
                 "index_ratios_bystrike.csv", index=False)

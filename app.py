@@ -1,20 +1,27 @@
 # Issues:
     # I took garbage collection out troubleshooting, put it back in
-    # Consider automatic gunicorn reloading with a webhook responding to github pushes, something like this:
-    # https://www.julo.ch/blog/lovely-deploy-with-gunicorn/ (maybe, it's old though)
+    # Consider automatic gunicorn reloading with a webhook responding to
+    # github pushes, something like this:
+    # https://www.julo.ch/blog/lovely-deploy-with-gunicorn/
+    # Import libraries specify support function within app
+    # PEP alerts are only working for some issues?
 
 # In[]:
-################################# Switching to/from Ubuntu VPS ##############################################################
+################################# Switching to/from Ubuntu VPS ################
 from sys import platform
 import os
 
 if platform == 'win32':
     homepath = "C:/users/user/github/"
-    payoutpath = "D:/"
     os.chdir(homepath + "PRF-ALTIND")
+    # payoutpath = "D:/"
+    # startyear = 1948
+    payoutpath = "D:/data/prf_altind/limited/"
+    startyear = 1980
 else:
     homepath = "/home/ubuntu/"
     os.chdir(homepath+"PRF-ALTIND")
+    startyear = 1980
 
 ###############################################################################
 from functions import *
@@ -33,17 +40,17 @@ mask = grid * 0 +  1
 
 # For the scatterplot maps
 source = xr.open_dataarray(homepath + "data/source_array.nc")
-source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities","light","24099"]'
+source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities", "light", "24099"]'
 
 # For the datatable at the bottom
-datatable = pd.read_csv(homepath + "data/PRFIndex_specs.csv").to_dict('RECORDS')
+datatable = pd.read_csv(homepath +
+                        "data/PRFIndex_specs.csv").to_dict('RECORDS')
 
 # For the city list
 cities_df = pd.read_csv("cities.csv")
 
 cities = [{'label':cities_df['NAME'][i]+", "+ cities_df['STATE'][i],
            'value':cities_df['grid'][i]} for i in range(len(cities_df))]
-#cities_df = cities_df.sort_values('POP',ascending = False)
 
 ############################# Set Scales by Signal ############################
 # Create dictionary that finds max values for each strike level and return type
@@ -160,11 +167,8 @@ app.css.append_css({'external_url':
 # Create server object
 server = app.server
 
-# No idea
-#CORS(server)
-
 # Create and initialize a cache for storing data - data pocket
-cache = Cache(config = {'CACHE_TYPE': 'simple'})
+cache = Cache(config={'CACHE_TYPE': 'simple'})
 cache.init_app(server)
 
 # In[]:
@@ -172,7 +176,6 @@ cache.init_app(server)
 ############################ Create Lists and Dictionaries ####################
 ###############################################################################
 # Index Paths
-# Index names, using the paths we already have. These are for titles.
 indices = [{'label': 'Rainfall Index', 'value': 'noaa'},
            {'label': 'PDSI', 'value': 'pdsi'},
            {'label': 'PDSI-Self Calibrated', 'value': 'pdsisc'},
@@ -246,6 +249,7 @@ seriesdict = {'premiums': 'Premium ($)',
                'pcfs': 'Payment Calculation Factor',
                'nets': 'Net Payout ($)',
                'lossratios': 'Loss Ratio'}
+
 # Strike levels
 strikes = [{'label': '70%', 'value': .70},
            {'label': '75%', 'value': .75},
@@ -262,7 +266,7 @@ maptypes = [{'label': 'Light', 'value': 'light'},
             {'label': 'Satellite Streets', 'value': 'satellite-streets'}]
 
 # Year Marks for Slider
-years = [int(y) for y in range(1948, 2018)]
+years = [int(y) for y in range(startyear, 2018)]
 yearmarks = dict(zip(years, years))
 for y in yearmarks:
     if y % 5 != 0:
@@ -273,8 +277,6 @@ dfcols = [{'label': "DI: Drought Index", 'value': 1},
           {'label': "AY: Actuarial Year", 'value': 2},
           {'label': "ICOV: Index Coefficient of Variance", 'value': 3},
           {'label': "S: Strike", 'value': 4},
-#         {'label':" B.R.: Baseline Year Range", 'value': 5},
-#         {'label':"S.R.: Study Year Range", 'value': 6},
           {'label': "TS: Temporal Scale", 'value': 5},
           {'label': "MAXP: Max Payment", 'value': 6},
           {'label': "MINP: Minimum Payment", 'value': 7},
@@ -330,8 +332,8 @@ layout = dict(
         accesstoken=mapbox_access_token,
         style="satellite-streets",  #'light', 'basic', 'outdoors', 'satellite'
         center=dict(
-            lon= -95.7,
-            lat= 37.1
+            lon=-95.7,
+            lat=37.1
         ),
         zoom=2,
     )
@@ -341,11 +343,13 @@ layout = dict(
 # Create app layout
 app.layout = html.Div(
     [
-             html.Div(# One
+             html.Div(
             [
-        # Title and Image
+                # Title and Image
                 html.A(html.Img(
-                    src = "https://github.com/WilliamsTravis/Pasture-Rangeland-Forage/blob/master/data/earthlab.png?raw=true",
+                    src = ("https://github.com/WilliamsTravis/" +
+                            "Pasture-Rangeland-Forage/blob/master/" +
+                            "data/earthlab.png?raw=true"),
                     className='one columns',
                     style={
                         'height': '40',
@@ -413,9 +417,6 @@ app.layout = html.Div(
                     'Drought Index Insurance Analysis Laboratory',
                     className='twelve columns'
                 ),
-#                html.Button(id = 'loading_button',
-#                            children = 'Loading Project',
-#                            type='button'),
                 html.Button(id = 'description_button',
                             children = 'Project Description (Click)',
                             title = description,
@@ -428,7 +429,7 @@ app.layout = html.Div(
                      'margin-top': '40',
                      'margin-bottom': '40'
                      }
-        ),
+            ),
             html.Div(
                     [
                         dcc.Markdown(id="description",
@@ -457,13 +458,6 @@ app.layout = html.Div(
                     className='six columns',
                     style={'text-align': 'justify'}
                 ),
-
-#                html.H5(
-#                    '',
-#                    id='year_text2',
-#                    className='two columns',
-#                    style={'text-align': 'center'}
-#                ),
             ],
             className='row'
         ),
@@ -473,18 +467,11 @@ app.layout = html.Div(
                 html.P('Study Period Year Range'),
                 dcc.RangeSlider(
                     id='year_slider',
-                    value=[2000, 2017],
-                    min=1948,
+                    value=[startyear, 2017],
+                    min=startyear,
                     max=2017,
                     marks=yearmarks
                 ),
-#                html.P('Baseline Average Year Range'),
-#                dcc.RangeSlider(
-#                    id='year_slider2',
-#                    value=[1948, 2016],
-#                    min=1948,
-#                    max=2017
-#                ),
             ],
             className = "twelve columns",
             style={'margin-top': '20',
@@ -492,10 +479,10 @@ app.layout = html.Div(
         ),
 
         # Selections
-        html.Div(# Four
+        html.Div(
             [
                 # Dropdowns
-                html.Div(# Four-a
+                html.Div(
                     [
                         html.P('Drought Index'),
                         dcc.Dropdown(
@@ -512,16 +499,10 @@ app.layout = html.Div(
                             multi = False,
                             options = returns
                         ),
-#                        html.P('Number of Acres'),
-#                        dcc.Input(
-#                            id = 'acres',
-#                            placeholder = 'Number of acres...',
-#                            value = 500,
-#                            type = 'number'
-#                            )
                         ],
                     className='four columns'
                 ),
+
                 # Other Selections
                 html.Div(# Four-a
                     [
@@ -550,13 +531,14 @@ app.layout = html.Div(
                     ],
                     className='four columns'
                 ),
+
                 # Map Selector
                 html.Div([
                         html.P("Map Type"),
                         dcc.Dropdown(
                                 id="map_type",
                                 value="light",
-                                options=maptypes, #'light', 'dark','basic', 'outdoors', 'satellite', or 'satellite-streets'   
+                                options=maptypes,   
                                 multi=False
                                     ),
                         html.P(" "),
@@ -586,42 +568,38 @@ app.layout = html.Div(
                ],
                 className = 'row'
             ),
+
         # Hidden DIV to store the signal
         html.Div(id='signal',
                  style={'display': 'none'}
             ),
-        
-#        # Hidden DIV to store the grid_choice
-#        html.Div(id='grid_store',
-#                 children = '[24099,{"points": [{"curveNumber": 0, "pointNumber": 6163, "pointIndex": 3013, "lon": -105.5, "lat": 40, "text": "GRID #: 24099<br>Data: 191.769", "marker.color": 191.769}]},24099]',
-#                 style={'display': 'none'}
-#            ),
+
+        # Hidden DIV to store the grid_choice
         html.Div(id='click_store',
                  children = '24099',
                  style={'display': 'none'}
             ),
         html.Div(id='city_store',
-                 children = '24099',
+                 children='24099',
                  style={'display': 'none'}
             ),
         html.Div(id='grid_store',
-                 children = '24099',
+                 children='24099',
                  style={'display': 'none'}
             ),
-         
+
         # Hidden DIV to store the final target id used by the bar charts
         html.Div(id='targetid_store',
-                 children = '24099',
+                 children='24099',
                  style={'display': 'none'}
             ),
+
         # Single Interactive Map
-        html.Div(#Five...If any one sees this, what is wrong with the alignment!? Just fix it, go ahead I don't care this is ridiculous
+        html.Div(
             [
-                html.Div(#Five-a
+                html.Div(
                     [
-                        dcc.Graph(id='main_graph',
-#                                  n_clicks_timestamp = '0'
-                                  ),
+                        dcc.Graph(id='main_graph'),
                         html.Button(id='map_info',
                                     title = mapinfo,
                                     type='button',
@@ -629,11 +607,11 @@ app.layout = html.Div(
                                     children='Map Info \uFE56 (Hover)'),
                     ],
                     className='seven columns',
-                    style={'float':'left',
+                    style={'float': 'left',
                             'margin-top': '40'
                             }
                 ),
-                html.Div(# Five-b
+                html.Div(
                     [
                         dcc.Graph(id='trend_graph'),
                         html.Button(id='trend_info',
@@ -652,10 +630,11 @@ app.layout = html.Div(
             ],
             className='row',
         ),
+
         # Time-Series
-        html.Div(#Six
+        html.Div(
             [
-                html.Div(#Six-a
+                html.Div(
                     [
                         dcc.Graph(id='series_graph'),
                         html.Button(id='series_info',
@@ -664,23 +643,22 @@ app.layout = html.Div(
                                     n_clicks = 0,
                                     children='Time Series Info \uFE56 (Hover)'),
                     ],
-#                    className='twelve columns',
                     style={'margin-top': '10'}
                 ),
             ],
             className='row',
-#            style = {'margin-right':'50'},
 
         ),
+
         # Data chart
-        html.Div(#Seven
+        html.Div(
             [
                 html.Div(
                     [   html.H1(" "),
                         html.H4('Summary Statistics'),
                         html.H5("Column Key"),
-                        dcc.Dropdown(options = dfcols,
-                                     placeholder = "Acronym: Description (Click)"),
+                        dcc.Dropdown(options=dfcols,
+                                     placeholder="Acronym: Description (Click)"),
                         dt.DataTable(
                              rows = datatable,
                              id = "summary_table",
@@ -688,7 +666,6 @@ app.layout = html.Div(
                              filterable=True,
                              sortable=True,
                              row_selectable=True,
-#                             min_width = 1655,
                              )
                     ],
                     className='twelve columns',
@@ -718,11 +695,10 @@ def global_store(signal):
     # Rename signals for comprehension
     index = signal[0]
     actuarialyear = signal[1]
-    studyears = signal[2] # No study years yet :/
+    studyears = signal[2]
     strike = signal[3]
     returntype = signal[4]
-    
-    
+  
     ################## Option #1: Retrieve Payouts ###########################
     #  I am now storing the windows payout data on a d drive...fix this
     path = (payoutpath + "data/payouts/AY" + str(actuarialyear) + 
@@ -735,35 +711,6 @@ def global_store(signal):
 
     df = [[str(dates['dates'][y]),arrays[y]] for y in range(len(arrays))]
 
-    ################## Option #2: Calculate Payouts ##########################
-#    # Create a few copies
-#    if actuarialyear == 2017:
-#        bases = bases2017
-#        premiums = premiums2017
-#    elif actuarialyear == 2018:
-#        bases = bases2018
-#        premiums = premiums2018
-#    # Get index arrays
-#    with np.load(homepath + "data/indices/"+index+"_arrays.npz") as data:
-#        arrays = data.f.arr_0
-#        data.close()
-#    with np.load(homepath + "data/indices/"+index+"_dates.npz") as data:
-#        names = data.f.arr_0
-#        data.close()
-#    indexlist = [[str(names[y]),arrays[y]] for y in range(len(arrays))]
-#
-#
-#    # Calculate insurance payments and create a dictionary of the returns
-#    # indexlist,grid, premiums, bases, actuarialyear, studyears, baselineyears, productivity, strike, acres, allocation,difference = 0, scale = True,plot = True
-#    df = indexInsurance(indexlist,grid,premiums, bases,actuarialyear,
-#                        studyears, [1948,2016], 1,
-#                        strike, 500, .5,
-#                        difference = 0, scale = True, plot = False)
-#    # Return Order
-#    # producerpremiums,indemnities,frequencies,pcfs,nets, lossratios,meanppremium,meanindemnity,frequencysum,meanpcf, net, lossratio
-#    indx = returnumbers.get(returntype)
-#    df = df[indx]
-    
     return df
 
 def retrieve_data(signal):
@@ -772,11 +719,10 @@ def retrieve_data(signal):
     df = global_store(signal)
     return df
 
-
 ###############################################################################
 ########################### Get Signal ########################################
 ###############################################################################
-# Store the data in the cache and hide the signal to activate it in the hidden div
+# Store data in the cache and hide the signal to activate it in the hidden div
 @app.callback(Output('signal', 'children'),
               [Input('submit','n_clicks')],
               [State('index_choice', 'value'),
@@ -785,12 +731,11 @@ def retrieve_data(signal):
                State('strike_level','value'),
                State('return_type','value'),
                State('map_type','value')])
-def submitSignal(clicks,index_choice,actuarial_year,year_slider,strike_level,returntype,maptype):
-    signal = json.dumps([index_choice,actuarial_year,year_slider,strike_level,returntype,maptype])
+def submitSignal(clicks, index_choice, actuarial_year, year_slider,
+                 strike_level, returntype, maptype):
+    signal = json.dumps([index_choice, actuarial_year, year_slider,
+                         strike_level, returntype, maptype])
     return signal
-
-
-
 
 # In[]
 ###############################################################################
@@ -892,11 +837,11 @@ def update_seriesinfo(signal,clickData):
 
     # Description for Info Button:
     seriesinfo = (" This is a time series of potential payouts that would have been received between "
-                 +  str(year1) + " and " + str(year2) + " at grid cell #"
-                + targetid + " using the experimental index insurance program with a 50% allocation of "
-               "total protection to each insurance interval from a hypothetical policy on a 500 "
-               "acre ranch at the "+ str(int(strike_level*100)) + "% Strike Level and 100% "
-               "productivity level.")
+                  +  str(year1) + " and " + str(year2) + " at grid cell #"
+                  + targetid + " using the experimental index insurance program with a 50% allocation of "
+                  "total protection to each insurance interval from a hypothetical policy on a 500 "
+                  "acre ranch at the "+ str(int(strike_level*100)) + "% Strike Level and 100% "
+                  "productivity level.")
 
     return seriesinfo
 
@@ -912,27 +857,26 @@ def clickOut(clickData):
         end_digit = clickData['points'][0]['text'].index("<")
         click_choice = int(clickData['points'][0]['text'][8:end_digit])
         when = time.time()
-#    print("Click time = " + str(when))
     print("Click: " + str(click_choice)+", time: " + str(when))
     return json.dumps([click_choice,when])
-    
+
 @app.callback(Output('city_store','children'),
               [Input('city_choice','value')])
 def cityOut(city_choice):
     if city_choice is None:
         city_choice = 24099
     when = time.time()
-    print("City: "+ str(city_choice)+", time: " + str(when))
-    return json.dumps([city_choice,when])
+    print("City: "+ str(city_choice) + ", time: " + str(when))
+    return json.dumps([city_choice, when])
 
 @app.callback(Output('grid_store','children'),
               [Input('grid_choice','value')])
 def gridOut(grid_choice):
     if grid_choice is None:
-        grid_choice =24099
+        grid_choice = 24099
     when = time.time()
-    print("Grid: " + str(grid_choice)+", time: " + str(when))
-    grid_store = json.dumps([grid_choice,when])
+    print("Grid: " + str(grid_choice) + ", time: " + str(when))
+    grid_store = json.dumps([grid_choice, when])
     return grid_store
 
 @app.callback(Output('targetid_store','children'),
@@ -940,7 +884,6 @@ def gridOut(grid_choice):
               Input('city_store','children'),
               Input('grid_store','children')])
 def whichGrid(click_store,city_store,grid_store):
-#    print("Print Store in which grid: " + click_store)
     cls,clt = json.loads(click_store)
     cis,cit = json.loads(city_store)
     grs,grt = json.loads(grid_store)
@@ -959,9 +902,8 @@ def whichGrid(click_store,city_store,grid_store):
 ###############################################################################
 ######################### Graph Builders ######################################
 ###############################################################################
-@app.callback(
-               Output('main_graph', 'figure'),
-              [Input('signal','children')]
+@app.callback(Output('main_graph', 'figure'),
+              [Input('signal', 'children')]
               )           
 def makeMap(signal):
     """
@@ -969,25 +911,11 @@ def makeMap(signal):
         In order to map over mapbox we are creating a scattermapbox object.
     """
     # Clear memory space -- ??
-    
+    gc.collect()
 
     # Get data
     df = retrieve_data(signal)
     
-    # Get click event for marker
-#    grid_store = json.loads(grid_store)
-#    print("###################### Map Click: " + str(grid_store) + " ########################")
-#    if grid_store[1] is None:
-#        print("grid_store is None")
-#        marker_x = -105.5 +.125
-#        marker_y = 40 + .125
-#    else:
-#        marker_y = grid_store[1]['points'][0]['lat'] 
-#        marker_x = grid_store[1]['points'][0]['lon']
-#        print("###################### Map Click Point: " + str([marker_x,marker_y]))
-             
-#    targetid = int(targetid)
-#    print("Map Target ID: " + str(targetid))
     # Get signal for labeling
     signal = json.loads(signal)
     indexname = signal[0]
@@ -998,19 +926,20 @@ def makeMap(signal):
     actuarialyear = signal[1]
     maptype = signal[5]
 
-#    # Filter by year range
+    # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
     df = [a[1] for a in df]
     if return_type == 'frequencies':
-        df = np.nansum(df,axis = 0)*mask
+        df = np.nansum(df, axis=0)*mask
     else:
-        df = np.nanmean(df,axis = 0)*mask
+        df = np.nanmean(df, axis=0)*mask
 
     # Data symbol for hover data
     if return_type == "premiums" or return_type == "indemnities" or return_type == "nets":
         datasymbol = "$"
     else:
         datasymbol = ""
+
     # Second, convert data back into an array, but in a from xarray recognizes
     array = np.array([df],dtype = "float32")
     # Third, change the source array to this one. Source is defined up top
@@ -1029,32 +958,19 @@ def makeMap(signal):
     pdf['grid'] = grid2[pdf['gridy'],pdf['gridx']]
     pdf['grid'] = pdf['grid'].apply(int).apply(str)
     pdf['data'] = pdf['data'].astype(float).round(3)
-    pdf['printdata'] = "GRID #: " + pdf['grid'] +"<br>Data: " + pdf['data'].apply(str)
-    
-    # below adds commas but takes too long
-    # pdf['printdata'] =  "<br>Data: "+datasymbol+pdf.apply(lambda x: x['data'] if pd.isnull(x['data']) else "{:,}".format(round(x['data'])), axis=1)#.apply(str)
+    pdf['printdata'] = "GRID #: " + pdf['grid'] + "<br>Data: " + pdf['data'].apply(str)
 
-    groups = pdf.groupby(("latbin", "lonbin"))
     df_flat = pdf.drop_duplicates(subset=['latbin', 'lonbin'])
     df = df_flat[np.isfinite(df_flat['data'])]
-    
-    # Append marker point
-#    row = df.iloc[[0]]
-#    row['latbin'] = marker_y
-#    row['lonbin'] = marker_x
-#    row['data'] = 9999
-#    df = df.append(row)
-    
+
     # Add Grid IDs
     colorscale = [[0, 'rgb(68, 13, 84)'], 
-                  [0.1, 'rgb(47, 107, 142)'],# Make darker (pretty sure this one)
-#                  [0.25, 'rgb(37, 180, 167)'],
+                  [0.1, 'rgb(47, 107, 142)'],
                   [0.2, 'rgb(32, 164, 134)'],
-#                  [0.55, 'rgb(249, 210, 41)'],
                   [.3, 'rgb(255, 239, 71)'],
                   [.45, 'rgb(229, 211, 13)'],
                   [.9, 'rgb(252, 63, 0)'],
-                  [1, 'rgb(140, 35, 0)']] # Make darker
+                  [1, 'rgb(140, 35, 0)']] 
 
 # Get Y-scale
     # Copy Scaletable
@@ -1069,39 +985,26 @@ def makeMap(signal):
 # Create the scattermapbox object
     data = [
         dict(
-        type = 'scattermapbox',
-        lon = df['lonbin'],
-        lat = df['latbin'],
-        text = df['printdata'],
-        mode = 'markers',
-        hoverinfo = 'text',
-        marker = dict(
-            colorscale = colorscale,
-            cmin = miny,
-            color = df['data'],
-            cmax = maxy,
+        type='scattermapbox',
+        lon=df['lonbin'],
+        lat=df['latbin'],
+        text=df['printdata'],
+        mode='markers',
+        hoverinfo='text',
+        marker=dict(
+            colorscale=colorscale,
+            cmin=miny,
+            color=df['data'],
+            cmax=maxy,
             opacity=0.85,
-            size = 5,
+            size=5,
             colorbar=dict(
                 textposition = "auto",
                 orientation = "h",
                 font = dict(size = 15)
                 )
             )
-        ), # This will be for a point to be placed on the map
-#        dict(
-#            type = 'scattermapbox',
-#            lon = marker_x,
-#            lat = marker_y,
-#            text = "Testing",
-#            mode = 'markers',
-#            marker = dict(
-#                 size = 25,
-#                 color = 'rgb(249, 0, 0)'
-#                 )
-#            )
-        ]
-
+        )]
 
     # Title Business
     if return_type == 'frequencies':
@@ -1138,7 +1041,7 @@ def makeMap(signal):
 #                Input('grid_choice','value'),
                 Input('targetid_store','children')
                 ])
-def makeTrendBar(clickData,signal,targetid):
+def makeTrendBar(clickData, signal, targetid):
     '''
     Makes a monthly trend bar for the selected information type at the clicked
         location.
@@ -1164,7 +1067,7 @@ def makeTrendBar(clickData,signal,targetid):
 #        x = londict.get(clickData['points'][0]['lon'])
 #        y = latdict.get(clickData['points'][0]['lat'])
 #        targetid  = grid[y,x]
-#        
+#
     targetid = int(targetid)
     print("############## Trend Map Target ID: " + str(targetid) + ", type: " + str(type(targetid))+" #####################")
 
@@ -1318,22 +1221,13 @@ def makeSeries(clickData,signal,targetid):
     '''
     Just like the trend bar, but for a time series.
     '''
-#    if clickData is None:
-#        x = londict.get(-100)
-#        y = latdict.get(40)
-#        targetid  = grid[y,x]
-#
-#    else:
-#        x = londict.get(clickData['points'][0]['lon'])
-#        y = latdict.get(clickData['points'][0]['lat'])
-#        targetid  = grid[y,x]
     targetid = int(targetid)
-    print("############## Series Map Target ID: " + str(targetid) + ", type: " + str(type(targetid))+" #####################")
+    print("############## Series Map Target ID: " + str(targetid) +
+          ", type: " + str(type(targetid))+" #####################")
 
     # Get data
-#    if not signal:
- #       signal = source_signal
     df = retrieve_data(signal)
+
     # Get the signal for Labeling
     signal = json.loads(signal)
     return_type = signal[4]
@@ -1348,7 +1242,7 @@ def makeSeries(clickData,signal,targetid):
     dates = [item[0][-6:-2]+"-"+ item[0][-2:] for item in df]
     intervals = [int(d[-2:]) for d in dates]
 
-    xlabels = [y for y in range(date1,date2+1)]
+    xlabels = [y for y in range(date1, date2+1)]
 
     # Catch the target grid cell
     index = np.where(grid == targetid)
@@ -1383,7 +1277,7 @@ def makeSeries(clickData,signal,targetid):
             text= valuesum,
             x=0.95,
             y=0.95,
-            font = dict(size = 17,color = "#000000"),
+            font=dict(size=17, color="#000000"),
             showarrow=False,
             xref="paper",
             yref="paper"
@@ -1398,7 +1292,7 @@ def makeSeries(clickData,signal,targetid):
             opacity=1,
             hoverinfo='skip',
             marker = dict(color = colors,
-                          line = dict(width=1, color = "#000000")
+                          line = dict(width=1, color="#000000")
                           )
         ),
     ]
@@ -1453,22 +1347,21 @@ def makeSeries(clickData,signal,targetid):
             xref="paper",
             yref="paper"
         )
-            
+
     layout_count = copy.deepcopy(layout)
 
-
-    incities = cities_df['NAME'][cities_df['grid']==targetid]+", "+cities_df['STATE'][cities_df['grid']==targetid]
-    label = ", ".join(list(incities))         
-    layout_count['title'] = ("<b>" + return_label+
-                            ' Time Series <br> Grid ID: ' + 
-                                str(int(targetid)) + "<br>" + label + "</b>")
+    incities = cities_df['NAME'][cities_df['grid'] == targetid] + ", "+cities_df['STATE'][cities_df['grid'] == targetid]
+    label = "; ".join(list(incities))         
+    layout_count['title'] = ("<b>" + return_label +
+                             ' Time Series <br> Grid ID: ' + 
+                             str(int(targetid)) + "<br>" + label + "</b>")
     layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
     layout_count['dragmode'] = 'select'
     layout_count['showlegend'] = False
     layout_count['annotations'] = [annotation]
     layout_count['yaxis'] = yaxis
-    layout_count['xaxis'] = dict(title= "Year",tickvals = xlabels, ticktext =xlabels, tickangle = 45 )
-
+    layout_count['xaxis'] = dict(title= "Year",
+                tickvals=xlabels, ticktext=xlabels, tickangle=45 )
 
     figure = dict(data=data, layout=layout_count)
     return figure
