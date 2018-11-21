@@ -14,12 +14,13 @@ import os
 if platform == 'win32':
     homepath = "C:/users/user/github/"
     os.chdir(homepath + "PRF-ALTIND")
-    # payoutpath = "D:/"
-    # startyear = 1948
-    payoutpath = "D:/data/prf_altind/limited/"
-    startyear = 1980
+    payoutpath = "D:/"
+    startyear = 1948
+    # payoutpath = "D:/data/prf_altind/limited/"
+    # startyear = 1980
 else:
     homepath = "/home/ubuntu/"
+    payoutpath = homepath
     os.chdir(homepath+"PRF-ALTIND")
     startyear = 1980
 

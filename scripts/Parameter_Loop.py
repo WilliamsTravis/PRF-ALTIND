@@ -79,11 +79,11 @@ for p in range(len(indices)):
         print(ay)
         for s in strikes:
             print(s)
-            df = indexInsurance(indexlist, # Index Path
+            df = indexInsurance(indexlist,  # Index Path
                                 grid,
                                 premiums,
                                 bases,
-                                ay, # Actuarial Year
+                                ay,  # Actuarial Year
                                 [1980, 2018],  # Study years
                                 [1948, 2016],  # Baseline
                                 1,  # Productivity
