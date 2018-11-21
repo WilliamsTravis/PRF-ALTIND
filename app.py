@@ -1037,11 +1037,9 @@ def makeMap(signal):
 ###############################################################################
 ###############################################################################
 @app.callback(Output('trend_graph','figure'),
-               [Input('main_graph','clickData'),
-                Input('signal','children'),
-#                Input('grid_choice','value'),
-                Input('targetid_store','children')
-                ])
+              [Input('main_graph','clickData'),
+               Input('signal','children'),
+               Input('targetid_store','children')])
 def makeTrendBar(clickData, signal, targetid):
     '''
     Makes a monthly trend bar for the selected information type at the clicked
@@ -1050,30 +1048,19 @@ def makeTrendBar(clickData, signal, targetid):
     # Get dataframe then signal for labeling
     df = retrieve_data(signal)
     signal = json.loads(signal)
-#    grid_store = json.loads(grid_store)
     return_type = signal[4]
     date1 = signal[2][0]
     date2 = signal[2][1]
     
-    # Establish location with grid ID or click data from the map
-#    print("Trendbar grid choice: " + str(grid_choice) + ", " + str(type(grid_choice)) + 
-#          "\n  clickData: " + str(clickData) + ", " + str(type(clickData)))
-    
-#    if clickData is None:
-#        if grid_choice is None:
-#            targetid = 24100
-#        else:
-#            targetid  = int(grid_choice)
-#    else:
-#        x = londict.get(clickData['points'][0]['lon'])
-#        y = latdict.get(clickData['points'][0]['lat'])
-#        targetid  = grid[y,x]
-#
+    # Check that the grid id routing works
     targetid = int(targetid)
-    print("############## Trend Map Target ID: " + str(targetid) + ", type: " + str(type(targetid))+" #####################")
+    print("############## Trend Map Target ID: " +
+          str(targetid) + ", type: " + str(type(targetid)) +
+          " #####################")
 
-#    # Filter by year range
-    df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
+    # Filter by year range
+    df = [d for d in df if int(d[0][-6:-2]) >= date1 and
+          int(d[0][-6:-2]) <= date2]
 
     # Catch the target grid cell
     index = np.where(grid == targetid)
@@ -1097,52 +1084,47 @@ def makeTrendBar(clickData, signal, targetid):
               11:'Nov-Dec'}
 
     # The actual values
-    valuelist = [[series[1] for series in timeseries if series[0][-2:] ==  interval] for interval in intervals]
+    valuelist = [[series[1] for series in timeseries if
+                  series[0][-2:] ==  interval] for interval in intervals]
 
     # In tuple form for the bar chart
     if return_type == 'frequencies':
-        averages =  tuple(np.asarray([np.sum(sublist) for sublist in valuelist]))
+        averages =  tuple(np.asarray([np.sum(sublist) for
+                                      sublist in valuelist]))
         calc = "Sums "
     else:
-        averages =  tuple(np.asarray([np.mean(sublist) for sublist in valuelist]))
+        averages =  tuple(np.asarray([np.mean(sublist) for
+                                      sublist in valuelist]))
         calc = "Averages "
 
+    # For display
     intlabels = [months.get(i) for i in range(1,12)]
     x = np.arange(len(intervals))
-
     layout_count = copy.deepcopy(layout)
     colors = [
-            "#050f51",#'darkblue',
-            "#1131ff",#'blue',
-            "#09bc45",#'somegreensishcolor',
-            "#6cbc0a",#'yellowgreen',
-            "#0d9e00",#'forestgreen',
-            "#075e00",#'darkgreen',
-            "#1ad10a",#'green',
-            "#fff200",#'yellow',
-            "#ff8c00",#'red-orange',
-            "#b7a500",#'darkkhaki',
-            "#6a7dfc" #'differentblue'
+            "#050f51",  # 'darkblue',
+            "#1131ff",  # 'blue',
+            "#09bc45",  # 'somegreensishcolor',
+            "#6cbc0a",  # 'yellowgreen',
+            "#0d9e00",  # 'forestgreen',
+            "#075e00",  # 'darkgreen',
+            "#1ad10a",  # 'green',
+            "#fff200",  # 'yellow',
+            "#ff8c00",  # 'red-orange',
+            "#b7a500",  # 'darkkhaki',
+            "#6a7dfc"   # 'differentblue'
             ]
+
     data = [
-#        dict(
-#            type='scatter',
-#            mode='markers',
-#            x=x,
-#            y=averages,
-#            name= returndict.get(return_type),
-#            opacity=0,
-#            hoverinfo='skip',
-#        ),
         dict(
             type='bar',
-            marker = dict(color = colors,line = dict(width = 3.5, color = "#000000")),
+            marker = dict(color=colors, line=dict(width=3.5,
+                                                  color="#000000")),
 #            yaxis = dict(range = [0,2500]),
             x=x,
             y=averages
-        ),
-    ]
-                        
+        )]
+
     if 'nets' in return_type:
         signal[4] = 'premiums'
         signal2 = json.dumps(signal)
@@ -1157,11 +1139,11 @@ def makeTrendBar(clickData, signal, targetid):
         maxy = max(scaletable[col])
         maxy = 15 if return_type == "frequencies" else maxy
     else:
-        maxy = 5000
+        maxy = 5000  # Didn't I specify this somewhere?
         
     if max(averages) < .75*maxy:
         yaxis = dict(
-                title = trenddict.get(return_type),
+                title=trenddict.get(return_type),
                 autorange=False,
                 range=[ylow, .75*maxy],
                 type='linear'
@@ -1177,35 +1159,35 @@ def makeTrendBar(clickData, signal, targetid):
         )
     else:
         yaxis = dict(
-                title = trenddict.get(return_type),
-                autorange = False,
-                range = [ylow, max(averages)*1.2],
-                type = 'linear'
+                title=trenddict.get(return_type),
+                autorange=False,
+                range=[ylow, max(averages)*1.2],
+                type='linear'
                 )
-        annotation = dict(
-            text= "<b>(rescaled)</b>",
+        annotation=dict(
+            text="<b>(rescaled)</b>",
             x=0.95,
             y=0.95,
-            font = dict(size = 17,color = "#000000"),
+            font=dict(size=17,
+                      color="#000000"),
             showarrow=False,
-            bgcolor = "#eee",
+            bgcolor="#eee",
             xref="paper",
             yref="paper"
         )
             
             
-    layout_count['title'] = ("<b>" +returndict.get(return_type)
+    layout_count['title'] = ("<b>" + returndict.get(return_type)
                              + ' Monthly Trends <br> Grid ID: '
                              + str(int(targetid)) + "</b>")
-    layout['titlefont'] = {'color':'#CCCCCC','size' : 15}
+    layout['titlefont'] = {'color': '#CCCCCC', 'size': 15}
     layout_count['dragmode'] = 'select'
     layout_count['showlegend'] = False 
     layout_count['annotations'] = [annotation]
-    layout_count['xaxis'] = dict(title= "Insurance Interval",tickvals = x, ticktext = intlabels,
-                                tickangle = 45)
-#    layout['titlefont'] = {'color':'#CCCCCC','size' : 18}
+    layout_count['xaxis'] = dict(title="Insurance Interval",
+                                 tickvals=x, ticktext=intlabels,
+                                 tickangle=45)
     layout_count['yaxis'] = yaxis
-#    layout_count['margin'] =   dict(l=60, r=35, b=75,t=65, pad = 4)
     figure = dict(data=data, layout=layout_count )
     return figure
 
@@ -1275,7 +1257,7 @@ def makeSeries(clickData,signal,targetid):
     colors = [colors.get(d) for d in intervals]
 
     annotation = dict(
-            text= valuesum,
+            text=valuesum,
             x=0.95,
             y=0.95,
             font=dict(size=17, color="#000000"),
@@ -1289,13 +1271,12 @@ def makeSeries(clickData,signal,targetid):
             x=dates,
             y=values,
             type='bar',
-            name= return_label+' Value Ditribution',
+            name=return_label+' Value Ditribution',
             opacity=1,
-            hoverinfo='skip',
-            marker = dict(color = colors,
-                          line = dict(width=1, color="#000000")
-                          )
-        ),
+            marker=dict(color=colors,
+                        line=dict(width=1, color="#000000")
+                                  )
+        )
     ]
 
     if 'nets' in return_type:
@@ -1339,7 +1320,7 @@ def makeSeries(clickData,signal,targetid):
                 type = 'linear'
                 )
         annotation = dict(
-            text= valuesum +"<br><b> (rescaled)</b>",
+            text=valuesum +"<br><b> (rescaled)</b>",
             x=0.95,
             y=0.95,
             font = dict(size = 17,color = "#000000"),
@@ -1351,7 +1332,7 @@ def makeSeries(clickData,signal,targetid):
 
     layout_count = copy.deepcopy(layout)
 
-    incities = cities_df['NAME'][cities_df['grid'] == targetid] + ", "+cities_df['STATE'][cities_df['grid'] == targetid]
+    incities = cities_df['NAME'][cities_df['grid'] == targetid] + ", " + cities_df['STATE'][cities_df['grid'] == targetid]
     label = "; ".join(list(incities))         
     layout_count['title'] = ("<b>" + return_label +
                              ' Time Series <br> Grid ID: ' + 
@@ -1361,7 +1342,7 @@ def makeSeries(clickData,signal,targetid):
     layout_count['showlegend'] = False
     layout_count['annotations'] = [annotation]
     layout_count['yaxis'] = yaxis
-    layout_count['xaxis'] = dict(title= "Year",
+    layout_count['xaxis'] = dict(title="Year",
                 tickvals=xlabels, ticktext=xlabels, tickangle=45 )
 
     figure = dict(data=data, layout=layout_count)
