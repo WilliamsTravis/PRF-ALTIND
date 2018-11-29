@@ -105,10 +105,9 @@ for i in indices:
             data = indexInsurance(indexlist,grid, premiums, bases, ay, [2000,2017], [1948,2016], 1, 
                                    s, 500, .5,difference = 0, scale = True,plot = False)
 
-                
             # Return Order:
-            #producerpremiums, indemnities, frequencies, pcfs, nets, lossratios, meanppremium, meanindemnity, 
-            #             frequencysum, meanpcf, net, lossratio
+            # producerpremiums, indemnities, frequencies, pcfs, nets, lossratios, meanppremium, meanindemnity, 
+            # frequencysum, meanpcf, net, lossratio
             maxpay = np.nanmax(data[7]) # INDEMNITY
             minpay = np.nanmin(data[7])
             maxfre = np.nanmax(data[8])

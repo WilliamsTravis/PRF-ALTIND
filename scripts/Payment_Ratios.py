@@ -14,48 +14,33 @@ noaapath = 'c:/users/user/github/data/indices/noaa_arrays.npz'
 
 # Paths
 paths = [
-          # 'c:/users/user/github/data/indices/noaa_arrays.npz',
-          # 'c:/users/user/github/data/indices/pdsi_arrays.npz',
-          # 'c:/users/user/github/data/indices/pdsisc_arrays.npz',
-          # 'c:/users/user/github/data/indices/pdsiz_arrays.npz',
-          # 'c:/users/user/github/data/indices/spi1_arrays.npz',
-          # 'c:/users/user/github/data/indices/spi2_arrays.npz',
-          # 'c:/users/user/github/data/indices/spi3_arrays.npz',
-          # 'c:/users/user/github/data/indices/spi6_arrays.npz',
-          # 'c:/users/user/github/data/indices/spei1_arrays.npz',
-          # 'c:/users/user/github/data/indices/spei2_arrays.npz',
-          # 'c:/users/user/github/data/indices/spei3_arrays.npz',
-          # 'c:/users/user/github/data/indices/spei6_arrays.npz',
+           'c:/users/user/github/data/indices/noaa_arrays.npz',
+           'c:/users/user/github/data/indices/pdsi_arrays.npz',
+           'c:/users/user/github/data/indices/pdsisc_arrays.npz',
+           'c:/users/user/github/data/indices/pdsiz_arrays.npz',
+           'c:/users/user/github/data/indices/spi1_arrays.npz',
+           'c:/users/user/github/data/indices/spi2_arrays.npz',
+           'c:/users/user/github/data/indices/spi3_arrays.npz',
+           'c:/users/user/github/data/indices/spi6_arrays.npz',
+           'c:/users/user/github/data/indices/spei1_arrays.npz',
+           'c:/users/user/github/data/indices/spei2_arrays.npz',
+           'c:/users/user/github/data/indices/spei3_arrays.npz',
+           'c:/users/user/github/data/indices/spei6_arrays.npz',
            'c:/users/user/github/data/indices/eddi1_arrays.npz',
            'c:/users/user/github/data/indices/eddi2_arrays.npz',
            'c:/users/user/github/data/indices/eddi3_arrays.npz',
-           'c:/users/user/github/data/indices/eddi6_arrays.npz',
-         ]
+           'c:/users/user/github/data/indices/eddi6_arrays.npz'
+]
 
 # Just names
-indices= [
-          # 'noaa',
-          # 'pdsi',
-          # 'pdsisc',
-          # 'pdsiz',
-          # 'spi1',
-          # 'spi2',
-          # 'spi3',
-          # 'spi6',
-          # 'spei1',
-          # 'spei2',
-          # 'spei3',
-          # 'spei6',
-          'eddi1',
-          'eddi2',
-          'eddi3',
-          'eddi6'
-          ]
+indices = ['noaa', 'pdsi', 'pdsisc', 'pdsiz', 'spi1', 'spi2', 'spi3', 'spi6',
+           'spei1', 'spei2', 'spei3', 'spei6', 'eddi1', 'eddi2', 'eddi3',
+           'eddi6']
 
 ############### Argument Definitions ##########################################
 actuarialyear = 2018
 baselineyears = [1948, 2016]
-studyears = [2000, 2017]
+studyears = [1948, 2017]
 productivity = 1
 strikes = [.7, .75, .8, .85, .9]
 acres = 500

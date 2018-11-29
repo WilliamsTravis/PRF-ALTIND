@@ -136,8 +136,9 @@ for i in indices:
                 
                 
             # Return Order:
-            #producerpremiums, indemnities, frequencies, pcfs, nets, lossratios, meanppremium, meanindemnity, 
-            #             frequencysum, meanpcf, net, lossratio
+            # producerpremiums, indemnities, frequencies, pcfs, nets,
+            # lossratios, meanppremium, meanindemnity, frequencysum, meanpcf,
+            # net, lossratio
             maxpay = np.nanmax(data[7]) # INDEMNITY
             minpay = np.nanmin(data[7]) 
             medpay = np.nanmedian(data[7])

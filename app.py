@@ -691,7 +691,7 @@ app.layout = html.Div(
 def global_store(signal):
     # Unjson the signal (Back to original datatypes)
     signal = json.loads(signal)
-#    signal = ["noaa", 2018, [2000, 2017], 0.7, "indemnities","strike"]
+    # signal = ["noaa", 2018, [2000, 2017], 0.7, "indemnities","strike"]
 
     # Rename signals for comprehension
     index = signal[0]
@@ -702,15 +702,9 @@ def global_store(signal):
   
     ################## Option #1: Retrieve Payouts ###########################
     #  I am now storing the windows payout data on a d drive...fix this
-    path = (payoutpath + "data/payouts/AY" + str(actuarialyear) + 
-               "/" + str(int(strike*100)) + "/" +
-               returntype + "/" + index)
-    with np.load(path + "/arrays.npz") as data:
-        arrays = data.f.arr_0
-        data.close()        
-    dates = pd.read_csv(path+"/dates.csv")
-
-    df = [[str(dates['dates'][y]),arrays[y]] for y in range(len(arrays))]
+    path = (payoutpath + "data/payouts/AY" + str(actuarialyear) + "_" +
+            str(int(strike*100)) + "_" + returntype + "_" + index)    
+    df = npzIn(path + "_arrays.npz", path + "_dates.npz")
 
     return df
 
@@ -904,9 +898,10 @@ def whichGrid(click_store,city_store,grid_store):
 ######################### Graph Builders ######################################
 ###############################################################################
 @app.callback(Output('main_graph', 'figure'),
-              [Input('signal', 'children')]
+              [Input('signal', 'children'),
+               Input('map_type', 'value')]
               )           
-def makeMap(signal):
+def makeMap(signal, maptype):
     """
     This will be the map itself, it is not just for changing maps.
         In order to map over mapbox we are creating a scattermapbox object.
@@ -925,7 +920,6 @@ def makeMap(signal):
     date1 = signal[2][0]
     date2 = signal[2][1]
     actuarialyear = signal[1]
-    maptype = signal[5]
 
     # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
@@ -1271,7 +1265,7 @@ def makeSeries(clickData,signal,targetid):
             x=dates,
             y=values,
             type='bar',
-            name=return_label+' Value Ditribution',
+            name=return_label + ' Value Ditribution',
             opacity=1,
             marker=dict(color=colors,
                         line=dict(width=1, color="#000000")
