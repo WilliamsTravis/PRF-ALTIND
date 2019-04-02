@@ -28,11 +28,10 @@ indices = ['noaa', 'pdsi', 'pdsisc', 'pdsiz', 'spi1', 'spi2', 'spi3',
            'spi6', 'spei1', 'spei2', 'spei3', 'spei6', 'eddi1', 'eddi2',
            'eddi3', 'eddi6']
 
-
 # Actuarial rate paths -- to be simplified
 premiums2017 = npzIn('data/actuarial/premium_arrays_2017.npz',
                      'data/actuarial/premium_dates_2017.npz')
-premiums2018= npzIn('data/actuarial/premium_arrays_2018.npz',
+premiums2018 = npzIn('data/actuarial/premium_arrays_2018.npz',
                     'data/actuarial/premium_dates_2018.npz')
 
 bases2017 = npzIn('data/actuarial/base_arrays_2017.npz',
@@ -113,7 +112,6 @@ for p in range(len(indices)):
                 print("data\\payouts\\AY" + str(ay) + "_" + str(int(s*100)) +
                       "_" + seriesdict[i] + "_" + indices[p] + "_array")
                 print("--")
-
 
             # Loop through each of the first five returns, save arrays, dates,
             # and the associated single mean array

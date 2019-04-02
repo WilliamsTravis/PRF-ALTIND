@@ -37,6 +37,7 @@ indexlist = arraydict['spei6']
 arrays = [a[1] for a in indexlist]
 lst = [a[55, 55] for a in arrays]
 
+
 def hist(lst, bins=100):
     plt.hist(lst, bins=bins)
 
@@ -48,46 +49,46 @@ def percentileArrays(indexlist):
     def percentiles(lst):
         '''
         lst = single time series of numbers
-        
-        So this is trickier than the simple ranked percentile method shown 
-            below. The distribution of percentiles should match that of the 
-            original values each percentage is associated with. There is 
+
+        So this is trickier than the simple ranked percentile method shown
+            below. The distribution of percentiles should match that of the
+            original values each percentage is associated with. There is
             obviously a way to do this, however, each of those original values
-            were calculated as relative impact numbers. If we were to take 
-            each time series of values (site by site I mean) and convert to 
+            were calculated as relative impact numbers. If we were to take
+            each time series of values (site by site I mean) and convert to
             percentiles according to the distribution of that time-series,
-            wouldn't we be losing the relative nature of the original values. 
+            wouldn't we be losing the relative nature of the original values.
             So, if we have a location where an index value of 0.25 is
-            associated with the 110th percentile, and another site where 0.25 
+            associated with the 110th percentile, and another site where 0.25
             is associated with the 125th, suddenly the standardization intended
             to make the index spatially comparable is lost! I do not how to
-            approach this. 
+            approach this.
         '''
 
         import scipy.stats
         scipy.stats.moment(lst, 1)
 
         pct = rankdata(lst)/len(lst)
-        return pct   
+        return pct
 
     arrays = [a[1] for a in indexlist]  # scipy.stats
     names = [a[0] for a in indexlist]
     mask = arrays[0] * 0 + 1
     pcts = np.apply_along_axis(percentiles, axis=0, arr=arrays)
     pcts = pcts*mask
-    pcts = [pct*2 for pct in pcts]  # Idk, 50 is where 100 should be
+    pcts = [pct for pct in pcts]
     indexlist = [[names[i], pcts[i]] for i in range(len(pcts))]
     return indexlist
 
 
 # Loop through each and save to a new file. This should make strike matching
-    # 100% easier. Remember to use original
+    # 100% easier. Remember to use original...This totally didn't work for that
 for i in tqdm(indices, position=0):
     indexlist = arraydict[i]
-    if "eddi" in i:
-        indexlist = [[a[0], a[1] * -1] for a in indexlist]
+    # if "eddi" in i:
+    #     indexlist = [[a[0], a[1] * -1] for a in indexlist]
     # Adjust for outliers, here?
-    if "noaa" not in i:
+    if "noaa here for insurance" not in i:
         # Adjust for outliers
         arrays = [a[1] for a in indexlist]
         sd = np.nanstd(arrays)
@@ -101,4 +102,4 @@ for i in tqdm(indices, position=0):
         newlist = percentileArrays(indexlist)
     else:
         newlist = indexlist
-    npzOut(newlist, r"C:\Users\User\github\data\indices\percentiles")
+    npzOut(newlist, r"D:\data\droughtindices\npz\percentiles")

@@ -30,13 +30,13 @@ from functions import *
 # In[]:
 ############################ Set up initial Signal and data ###################
 import warnings
-warnings.filterwarnings("ignore") # The empty slice warnings are too much
+warnings.filterwarnings("ignore")  # The empty slice warnings are too much
 
 # For insurance grid IDs
 grid = np.load(homepath + "data/prfgrid.npz")["grid"]
 grids = np.unique(grid[~np.isnan(grid)])
 grids = [str(int(g)) for g in grids]
-grids = [{'label':g,'value':int(g)} for g in grids]
+grids = [{'label': g, 'value': int(g)} for g in grids]
 mask = grid * 0 +  1
 
 # For the scatterplot maps
@@ -198,10 +198,10 @@ indexnames = {'noaa': 'NOAA CPC-Derived Rainfall Index',
               'pdsi': 'Palmer Drought Severity Index',
               'pdsisc': 'Self-Calibrated Palmer Drought Severity Index',
               'pdsiz': 'Palmer Z Index',
-              'spi1':'Standardized Precipitation Index - 1 month',
-              'spi2':'Standardized Precipitation Index - 2 month',
-              'spi3':'Standardized Precipitation Index - 3 month',
-              'spi6':'Standardized Precipitation Index - 6 month',
+              'spi1': 'Standardized Precipitation Index - 1 month',
+              'spi2': 'Standardized Precipitation Index - 2 month',
+              'spi3': 'Standardized Precipitation Index - 3 month',
+              'spi6': 'Standardized Precipitation Index - 6 month',
               'spei1': 'Standardized Precipitation-Evapotranspiration Index' +
                        ' - 1 month',
               'spei2': 'Standardized Precipitation-Evapotranspiration Index' +
@@ -302,8 +302,8 @@ lons = [-130 + .25*x for x in range(0,300)]
 lats = [49.75 - .25*x for x in range(0,120)]
 londict = dict(zip(lons, xs))
 latdict = dict(zip(lats, ys))
-londict2  = {y: x for x, y in londict.items()}
-latdict2  = {y: x for x, y in latdict.items()}
+londict2 = {y: x for x, y in londict.items()}
+latdict2 = {y: x for x, y in latdict.items()}
 
 # Create global chart template
 mapbox_access_token = ('pk.eyJ1IjoidHJhdmlzc2l1cyIsImEiOiJjamZiaHh4b28waXNk' +
@@ -342,10 +342,8 @@ layout = dict(
 
 # In[]:
 # Create app layout
-app.layout = html.Div(
-    [
-             html.Div(
-            [
+app.layout = html.Div([
+             html.Div([
                 # Title and Image
                 html.A(html.Img(
                     src = ("https://github.com/WilliamsTravis/" +
@@ -623,7 +621,7 @@ app.layout = html.Div(
                     ],
                     className='five columns',
                     style={
-                            'float':'right',
+                           'float':'right',
                            'margin-top': '40'
                            },
 
@@ -840,7 +838,6 @@ def update_seriesinfo(signal,clickData):
 
     return seriesinfo
 
-
 # In[] 
 @app.callback(Output('click_store','children'),
               [Input('main_graph','clickData')])
@@ -849,11 +846,12 @@ def clickOut(clickData):
         click_choice = 24099
         when = time.time()
     else:
+        print(clickData)
         end_digit = clickData['points'][0]['text'].index("<")
         click_choice = int(clickData['points'][0]['text'][8:end_digit])
         when = time.time()
     print("Click: " + str(click_choice)+", time: " + str(when))
-    return json.dumps([click_choice,when])
+    return json.dumps([click_choice, when])
 
 @app.callback(Output('city_store','children'),
               [Input('city_choice','value')])
@@ -878,19 +876,20 @@ def gridOut(grid_choice):
               [Input('click_store','children'),
               Input('city_store','children'),
               Input('grid_store','children')])
-def whichGrid(click_store,city_store,grid_store):
+def whichGrid(click_store, city_store, grid_store):
     cls,clt = json.loads(click_store)
     cis,cit = json.loads(city_store)
     grs,grt = json.loads(grid_store)
-    
+
     if clt > cit and clt > grt:
         targetid = cls
     if cit > clt and cit > grt:
         targetid = cis
     if grt > clt and grt > cit:
         targetid = grs
+
     print("whichGrid Target ID: " + str(targetid))
-    
+
     return json.dumps(targetid)
 
 # In[]
@@ -899,14 +898,13 @@ def whichGrid(click_store,city_store,grid_store):
 ###############################################################################
 @app.callback(Output('main_graph', 'figure'),
               [Input('signal', 'children'),
-               Input('map_type', 'value')]
-              )           
+               Input('map_type', 'value')])           
 def makeMap(signal, maptype):
     """
     This will be the map itself, it is not just for changing maps.
         In order to map over mapbox we are creating a scattermapbox object.
     """
-    # Clear memory space -- ??
+    # Clear memory space
     gc.collect()
 
     # Get data
@@ -922,7 +920,8 @@ def makeMap(signal, maptype):
     actuarialyear = signal[1]
 
     # Filter by year range
-    df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
+    df = [d for d in df if int(d[0][-6:-2]) >= date1 and
+          int(d[0][-6:-2]) <= date2]
     df = [a[1] for a in df]
     if return_type == 'frequencies':
         df = np.nansum(df, axis=0)*mask
@@ -930,15 +929,17 @@ def makeMap(signal, maptype):
         df = np.nanmean(df, axis=0)*mask
 
     # Data symbol for hover data
-    if return_type == "premiums" or return_type == "indemnities" or return_type == "nets":
+    if return_type == "premiums" or return_type == "indemnities"or return_type == "nets":
         datasymbol = "$"
     else:
         datasymbol = ""
 
     # Second, convert data back into an array, but in a from xarray recognizes
-    array = np.array([df],dtype = "float32")
+    array = np.array([df], dtype = "float32")
+
     # Third, change the source array to this one. Source is defined up top
     source.data = array
+
     # Fourth, bin the values into lat, long points for the dataframe
     dfs = xr.DataArray(source, name = "data")
     pdf = dfs.to_dataframe()
@@ -950,7 +951,7 @@ def makeMap(signal, maptype):
     pdf['gridy']= pdf['latbin'].map(latdict)
     grid2 = np.copy(grid)
     grid2[np.isnan(grid2)] = 0
-    pdf['grid'] = grid2[pdf['gridy'],pdf['gridx']]
+    pdf['grid'] = grid2[pdf['gridy'], pdf['gridx']]
     pdf['grid'] = pdf['grid'].apply(int).apply(str)
     pdf['data'] = pdf['data'].astype(float).round(3)
     pdf['printdata'] = "GRID #: " + pdf['grid'] + "<br>Data: " + pdf['data'].apply(str)
@@ -969,14 +970,19 @@ def makeMap(signal, maptype):
 
 # Get Y-scale
     # Copy Scaletable
-    if return_type != "premiums":
-        st = scaletable#[scaletable['index'] == indexname]
-        maxy = max(st['max_'+return_type])
-        miny = min(st['min_'+return_type])
-    else:
+    if return_type != "premiums" or return_type != "nets":
+        st = scaletable
+        maxy = max(st['max_' + return_type])
+        miny = min(st['min_' + return_type])
+    elif return_type == "premiums":
+        st = scaletable
         miny = 0
-        maxy = 1700
-    
+        maxy = max(st['max_indemnities'])
+    elif return_type == "nets":
+        st = scaletable
+        miny = 0
+        maxy = max(st['max_indemnities'])      
+
 # Create the scattermapbox object
     data = [
         dict(
@@ -1023,6 +1029,7 @@ def makeMap(signal, maptype):
     print("Mapbox Layout: " + str(layout['mapbox']))
           
     figure = dict(data=data, layout=layout)
+
     return figure
 
 
@@ -1191,9 +1198,9 @@ def makeTrendBar(clickData, signal, targetid):
 ###############################################################################
 @app.callback(Output('series_graph','figure'),
                [Input('main_graph','clickData'),
-               Input('signal','children'),
-#               Input('grid_choice','value'),
-               Input('targetid_store','children')])
+                Input('signal','children'),
+#                Input('grid_choice','value'),
+                Input('targetid_store','children')])
 def makeSeries(clickData,signal,targetid):
     '''
     Just like the trend bar, but for a time series.
@@ -1212,7 +1219,7 @@ def makeSeries(clickData,signal,targetid):
     date1 = signal[2][0]
     date2 = signal[2][1]
 
-    #    # Filter by year range
+    # Filter by year range
     df = [d for d in df if int(d[0][-6:-2]) >= date1 and int(d[0][-6:-2]) <= date2]
 
     # For title

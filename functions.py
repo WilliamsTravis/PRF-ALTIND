@@ -45,9 +45,11 @@ import gc
 import glob
 import json
 from flask import Flask
+import matplotlib
 import matplotlib.pyplot as plt 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Patch
+from matplotlib.ticker import FuncFormatter
 import numpy as np
 import numpy.ma as ma
 from collections import OrderedDict
@@ -389,7 +391,8 @@ def getNPYs(numpypath,csvpath):
 ###########################################################################    
 def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
                    baselineyears, productivity, strike, acres, allocation,
-                   difference=0, scale=True, plot=False):
+                   difference=0, scale=True, plot=False,
+                   interval_restriction=False):
     '''
     **** UNDER CONSTRUCTION AND OPEN TO SUGGESTION ****
 
@@ -505,7 +508,7 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
                  'Haying Interval (irrigated)\n Oct-Nov': 'h10',
                  'Haying Interval (irrigated)\n Nov-Dec': 'h11'}
     colnames2 = {y: x for x, y in colnames1.items()}
-    
+
     # Developing arguments
     # indexlist = homepath + 'data/indices/noaa_arrays.npz'
     # bases = npzIn(homepath + 'data/actuarial/base_arrays_' +
@@ -530,16 +533,20 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
 
     # Get the indexlist if it is given as a path to the arrays.
     if str(type(indexlist)) != "<class 'list'>":
-        arraypath = indexlist
-        datepath = indexlist.replace("arrays", "dates")
-        indexlist = npzIn(arraypath,
-                          datepath)
+        try:
+            indexlist = readRasters2(indexlist, -9999)[0]
+            print("tifs")
+        except:
+            print("npzs")
+            arraypath = indexlist
+            datepath = indexlist.replace("arrays", "dates")
+            indexlist = npzIn(arraypath,
+                              datepath)
         # Fix to work with rasters or npzs
 
     ###########################################################################
     ################# Define Internal Functions ###############################
     ###########################################################################
-
     def freqCalc(array, strike):
         strike2 = key.get(strike)
         array[array <= strike2] = -9999
@@ -548,7 +555,7 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
         return(array)
 
     def pcfCalc(array, strike):
-        strike2 = key.get(strike)  # Strike2 preserves original strike value
+        strike2 = key.get(strike)  # Strike2 to preserve original strike value
         array[array > strike2] = 0
         pcf = abs((strike2-array)/strike2)
         pcf[pcf == 1] = 0
@@ -583,11 +590,10 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
         # This was confusing at first
         if "EDDI" in indexname:
             indexlist = [[a[0], a[1]*-1] for a in indexlist]
-        
+
         # Adjust for outliers
         arrays = [a[1] for a in indexlist]
         sd = np.nanstd(arrays)
-        mean = np.nanmean(arrays)
         thresholds = [-3*sd, 3*sd]
         for a in arrays:
             a[a <= thresholds[0]] = thresholds[0]
@@ -606,11 +612,11 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
                             "newstrikes.csv")
 
         if indexname not in list(keydf['index']):
-            # Get the noaa values for scaling if needed
+            # Get the noaa values for strike matching if needed
             noaalist = npzIn("C:/users/user/github/data/indices/" +
                              "noaa_arrays.npz",
-                              "C:/users/user/github/data/indices/" +
-                              "noaa_dates.npz")
+                             "C:/users/user/github/data/indices/" +
+                             "noaa_dates.npz")
 
             # Establish Strikes
             strikes = [.7, .75, .8, .85, .9]
@@ -656,8 +662,9 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
         else:
             payscalar = 1
 
-        # Now, we need to overwrite the premium rates unless its the NOAA index
-        # need pcfs from the full record
+        # Now, we need to overwrite the premium rates, if the index is NOAA
+        # this step is skipped and the actual premiums rates are used.
+        # Need pcfs from the full record
         copylist = [[array[0], np.copy(array[1])] for array in indexlist]
         pcfrays = [pcfCalc(array[1], strike) for array in copylist]
         meanpcf = np.nanmean(pcfrays, axis=0)
@@ -686,15 +693,18 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
 
     totalpremiums = [[array[0], insuranceCalc(array, productivity, strike,
                       acres, allocation, bases, premiums_filtered, mask, key,
-                      payscalar)[3]] for array in indexlist]
+                      payscalar,
+                      interval_restriction)[3]] for array in indexlist]
 
     producerpremiums = [[array[0], insuranceCalc(array, productivity, strike,
                          acres, allocation, bases, premiums_filtered, mask,
-                         key, payscalar)[1]] for array in indexlist]
+                         key, payscalar,
+                         interval_restriction)[1]] for array in indexlist]
 
     indemnities = [[array[0], insuranceCalc(array, productivity, strike, acres,
                     allocation, bases, premiums_filtered, mask, key,
-                    payscalar)[2]] for array in indexlist]
+                    payscalar,
+                    interval_restriction)[2]] for array in indexlist]
 
     totalpremiumarrays = [element[1] for element in totalpremiums]
     premiumarrays = [element[1] for element in producerpremiums]
@@ -1011,346 +1021,24 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
           "meanpcf, net, lossratio")
     return insurance_package_all
 
-###########################################################################
-############## Mondo, Super Important Main Function ########################
-###########################################################################    
-def indexInsurance_perc(indexlist, grid, premiums, bases, actuarialyear, studyears,
-                   baselineyears, productivity, strike, acres, allocation,
-                   difference=0, scale=True, plot=False):
-    '''
-    **** UNDER CONSTRUCTION AND OPEN TO SUGGESTION ****
-
-        Takes in a list of raster paths and variables, namely a drought index of some sort and 
-            uses them to calculate hypothetical Pasture, Rangeland, and Forage Insurance payouts for 
-            each Risk Management Agency (RMA) grid cell for each interval between a range of years.
-
-        ARGUMENTS:               DESCRIPTION                                                    OBJECT TYPE
-            
-        indexlist                - A list of arrays representing a timeseries of drought        (arrays)
-                					   index raster datasets.
-                                       [NAME_YYYYMM", 2D Numpy Array]
-	    grid                     - RMA Insurance grid array                                     (array)
-	    premiums                 - List of Premiums arrays				                         (arrays)
-	    bases 		             - List of County base value arrays                             (arrays)
-        studyears                - Start and end year for the payout calculation                (integers)
-        baselineyears            - Years between which the monthly average values will be       (integers)
-                                        indexed 
-        productivity             - Number signifying productivity ratio                         (float)
-        strike                   - Number signifying gaurantee level that triggers payouts      (float)
-        acres                    - Number of acres per cell                                     (integer)
-        allocation               - Monthly Allocation                                           (float)
-	    difference               - For the old plotting system (which output to plot)           (integer)
-	    scale                    - Whether or not to scale payments                             (integer)
-                						1 = yes, 0 = no
-	    plot 		             - Whether or not to plot with the old system (matplotlib)      (True/False)
-	    
-            
-        
-        RETURNS:
-            
-        insurance_package_all
-        producerpremiums     - List of producer premium values in every interval/year       (list of arrays)
-        indemnities          - List of indemnity values in every interval/year              (list of arrays)
-		frequencies	         - List of single payout events				                     (list of arrays)
-		pcfs                 - List of payment calculation factors 			                 (list of arrays)
-		nets                 - List of net payouts			                                 (list of arrays)
-		lossratios           - List of unsubsidized lossratios				                 (list of arrays)
-        meanppremium         - Average 'monthly' producer premiums for each grid cell       (array)
-        meanindemnity        - Average 'monthly' indemnity for each grid cell               (array)
-		frequencysum         - Sum of 'monthly' payout events for each grid cell            (array)
-		meanpcf              - Average 'monthly' payment calculation factors for each cell  (array)
-		net		             - Average 'monthly' net payments after producer premiums       (array)
- 		lossratio            - Average 'monthly' unsusidized loss ratio                     (array)
-
-        THINGS TO DO/Consider:
-
-            1) Add in a try/except structure for errors
-
-            2) Some stipulations on calculating new indices
-                a) The RMA is calculated from 1948 up to two years before the crop year, though the
-                    baseline years may be changed to check for effects
-                c) There are multiple methods of calculation to compensate for drought index value
-                    distributions, particularly very large negative values. Be careful to choose a 
-		            consistent method to each. For now outliers below 3 standard deviations are 
-		            asigned that value. 
-                d) So far this is only functional for grazing operations, actuarial rates for 
-                    haying are available but need to be rasterized before they can be used here.
-                e) payment calculation factor and frequency data do not incorporate the availability
-        		    restrictions in the southeast. The payout data does though, so that is why there
-		            is such a large discrepancy.  
-
-            3) Insurable interest is apparently included in the original cacluation, what is this 
-                    and how do I incorporate it?
-
-	    4) Go back and add the EDDI's back in. There is interest in this and I might be able to ameliorate
-		    some of the issues with payment scaling.
-                    
-    **** UNDER CONSTRUCTION ****
-
-    '''
-
-    ###########################################################################
-    ############## Establish some necessary pieces to the calculation #########
-    ###########################################################################
-    # This dictionary of column names is needed to match information from the
-    # actuarial rates to the appropriate place and time. I do this to maintain
-    # readability of the original data table. Not currently necessary, but this
-    # will be useful if we want to adjust this
-    
-    colnames1 = {'Grid ID': 'gridid', 'Guarantee Level': 'strike',
-                 'Grazing Interval\n Jan-Feb': 'g1',
-                 'Grazing Interval\n Feb-Mar': 'g2',
-                 'Grazing Interval\n Mar-Apr': 'g3',
-                 'Grazing Interval\n Apr-May': 'g4',
-                 'Grazing Interval\n May-Jun': 'g5',
-                 'Grazing Interval\n Jun-Jul': 'g6',
-                 'Grazing Interval\n Jul-Aug': 'g7',
-                 'Grazing Interval\n Aug-Sep': 'g8',
-                 'Grazing Interval\n Sep-Oct': 'g9',
-                 'Grazing Interval\n Oct-Nov': 'g10',
-                 'Grazing Interval\n Nov-Dec': 'g11',
-                 'Haying Interval (non-irrigated)\n Jan-Feb': 'h1',
-                 'Haying Interval (non-irrigated)\n Feb-Mar': 'h2',
-                 'Haying Interval (non-irrigated)\n Mar-Apr': 'h3',
-                 'Haying Interval (non-irrigated)\n Apr-May': 'h4',
-                 'Haying Interval (non-irrigated)\n May-Jun': 'h5',
-                 'Haying Interval (non-irrigated)\n Jun-Jul': 'h6',
-                 'Haying Interval (non-irrigated)\n Jul-Aug': 'h7',
-                 'Haying Interval (non-irrigated)\n Aug-Sep': 'h8',
-                 'Haying Interval (non-irrigated)\n Sep-Oct': 'h9',
-                 'Haying Interval (non-irrigated)\n Oct-Nov': 'h10',
-                 'Haying Interval (non-irrigated)\n Nov-Dec': 'h11',
-                 'Haying Interval (irrigated)\n Jan-Feb': 'h1',
-                 'Haying Interval (irrigated)\n Feb-Mar': 'h2',
-                 'Haying Interval (irrigated)\n Mar-Apr': 'h3',
-                 'Haying Interval (irrigated)\n Apr-May': 'h4',
-                 'Haying Interval (irrigated)\n May-Jun': 'h5',
-                 'Haying Interval (irrigated)\n Jun-Jul': 'h6',
-                 'Haying Interval (irrigated)\n Jul-Aug': 'h7',
-                 'Haying Interval (irrigated)\n Aug-Sep': 'h8',
-                 'Haying Interval (irrigated)\n Sep-Oct': 'h9',
-                 'Haying Interval (irrigated)\n Oct-Nov': 'h10',
-                 'Haying Interval (irrigated)\n Nov-Dec': 'h11'}
-    colnames2 = {y: x for x, y in colnames1.items()}
-    
-    # Developing arguments
-    # indexlist = homepath + 'data/indices/percentiles/spei3_arrays.npz'
-    # bases = npzIn(homepath + 'data/actuarial/base_arrays_' +
-    #           str(actuarialyear) + '.npz',
-    #           homepath + 'data/actuarial/base_dates_' +
-    #           str(actuarialyear) + '.npz')
-    # premiums = npzIn(homepath + 'data/actuarial/premium_arrays_' +
-    #                   str(actuarialyear) + '.npz',
-    #                   homepath + 'data/actuarial/premium_dates_' +
-    #                   str(actuarialyear) + '.npz')
-    # grid = readRaster(homepath + "data/rma/prfgrid.tif", 1, -9999)[0]
-    # allocation = .5
-    # produtivity = 1
-    # actuarialyear = 2018
-    # studyears = [2000, 2018]
-    # baselineyears = [1948, 2016]
-    # strike = .8
-    # acres = 500
-    # difference = 0
-    # scale = True
-    # plot = False
-
-    # Get the indexlist if it is given as a path to the arrays.
-    if str(type(indexlist)) != "<class 'list'>":
-        arraypath = indexlist
-        datepath = indexlist.replace("arrays", "dates")
-        indexlist = npzIn(arraypath,
-                          datepath)
-        # Fix to work with rasters or npzs
-
-    ###########################################################################
-    ################# Define Internal Functions ###############################
-    ###########################################################################
-
-    def freqCalc(array, strike):
-        strike2 = key.get(strike)
-        array[array <= strike2] = -9999
-        array[array > strike2] = 0
-        array[array == -9999] = 1
-        return(array)
-
-    def pcfCalc(array, strike):
-        strike2 = key.get(strike)  # Strike2 preserves original strike value
-        array[array > strike2] = 0
-        pcf = abs((strike2-array)/strike2)
-        pcf[pcf == 1] = 0
-        return(pcf)
-
-    ###########################################################################
-    ############## Getting all the numbers ####################################
-    ###########################################################################
-    # Extract the years
-    startyear = int(studyears[0])
-    endyear = int(studyears[1])
-    baselineyear = int(baselineyears[0])
-    baselinendyear = int(baselineyears[1])
-
-    ###########################################################################
-    ############## Adjust the Climate Index list if Needed ####################
-    ###########################################################################     
-    # Load in the test index -  Geometry and projection are for writing rasters
-    indexname = indexlist[0][0][:-7]
-
-    # Below needed to be linked before, not now but everything is built as such
-    key = {.9: .9, .85: .85, .8: .8, .75: .75, .7: .7}
-
-    # Make some index specific adjustments
-    if "NOAA" in indexname:
-        # No Alterations
-        indexlist = indexlist
-        payscalar = 1
-        premiums_filtered = [p for p in premiums if
-                             p[0][-5:-3] == "%02d" % int(strike * 100)]
-    else:
-        # Adjust intervals
-        indexlist = adjustIntervals(indexlist)
-
-        # Scale payments, if needed
-        if scale:
-            # Set up the payment scaling ratios.
-            scalardf = pd.read_csv("C:/users/user/github/" +
-                                   "data/Index_Adjustments/" +
-                                   "index_ratios_bystrike.csv")
-
-            # if indexname.lower() not in scalardf['index']:  # Automate this
-
-            scalardf['indexid'] = (scalardf['index'] + "_" +
-                                   scalardf['strike'].astype(str))
-            scalars = dict(zip(scalardf['indexid'], scalardf['ratio']))
-
-            # Get the appropriate ratio for the current index's group
-            name = ''.join([c.replace('-', '').lower() for c in indexname])
-            name = name + "_" + str(strike)
-            payscalar = scalars.get(name)
-        else:
-            payscalar = 1
-
-        # Now, we need to overwrite the premium rates unless its the NOAA index
-        # need pcfs from the full record
-        copylist = [[array[0], np.copy(array[1])] for array in indexlist]
-        pcfrays = [pcfCalc(array[1], strike) for array in copylist]
-        meanpcf = np.nanmean(pcfrays, axis=0)
-        pcfs = [[indexlist[i][0], pcfrays[i]] for i in range(len(pcfrays))]
-
-        # We have the strike, now we need the premiums for each interval
-        intervals = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-        premiums_filtered = [premiumLoading(indexlist,
-                                            pcfs,
-                                            strike,
-                                            i) for i in intervals]
-
-    # Now reduce the list to the calculation period.
-    indexlist = [year for year in indexlist if
-                 int(year[0][-6:-2]) >= startyear and
-                 int(year[0][-6:-2]) <= endyear]
-
-    ###########################################################################
-    ############## Call the function to get array lists  ######################
-    ###########################################################################
-    mask = grid*0 + 1
-
-    # totalsubsidyarrays = [insuranceCalc(array, productivity, strike, acres,
-    #                                     allocation, bases, premiums,
-    #                                     mask)[0] for array in indexlist]
-
-    totalpremiums = [[array[0], insuranceCalc(array, productivity, strike,
-                      acres, allocation, bases, premiums_filtered, mask, key,
-                      payscalar)[3]] for array in indexlist]
-
-    producerpremiums = [[array[0], insuranceCalc(array, productivity, strike,
-                         acres, allocation, bases, premiums_filtered, mask,
-                         key, payscalar)[1]] for array in indexlist]
-
-    indemnities = [[array[0], insuranceCalc(array, productivity, strike, acres,
-                    allocation, bases, premiums_filtered, mask, key,
-                    payscalar)[2]] for array in indexlist]
-
-    totalpremiumarrays = [element[1] for element in totalpremiums]
-    premiumarrays = [element[1] for element in producerpremiums]
-    indemnityarrays = [element[1] for element in indemnities]
-
-    ###########################################################################
-    ############## Call the function to get frequencies #######################
-    ###########################################################################
-    # These are for frequencies within the study perios=d
-    copylist = [[array[0], np.copy(array[1])] for array in indexlist]
-    frequencyrays = [freqCalc(array[1], strike) for array in copylist]
-    frequencysum = np.sum(frequencyrays, axis=0)
-    frequencies = [[indexlist[i][0], frequencyrays[i]] for
-                   i in range(len(frequencyrays))]
-
-    ###########################################################################
-    ############## Same for Payout Claculation Factors ########################
-    ###########################################################################
-    # These are for pcfs within the study period
-    copylist = [[array[0], np.copy(array[1])] for array in indexlist]
-    pcfrays = [pcfCalc(array[1], strike) for array in copylist]
-    meanpcf = np.nanmean(pcfrays, axis=0)
-    pcfs = [[indexlist[i][0], pcfrays[i]] for i in range(len(pcfrays))]
-
-    ###########################################################################
-    ############## Average the out comes to show mean values at each cell #####
-    ###########################################################################
-    meanppremium = np.nanmean(premiumarrays, axis=0)
-    meanindemnity = np.nanmean(indemnityarrays, axis=0)
-    meantpremium = np.nanmean(totalpremiumarrays, axis=0)
-
-    # Use those to get net payments and loss ratios
-    net = meanindemnity - meanppremium
-    nets = [[indemnities[i][0], indemnityarrays[i]-premiumarrays[i]] for
-            i in range(len(indemnityarrays))]
-    lossratio = np.round(meanindemnity/meantpremium, 2)
-    lossratios = [[indemnities[i][0],
-                   indemnityarrays[i]/totalpremiumarrays[i]] for
-                   i in range(len(indemnityarrays))]
-
-    ###########################################################################
-    ################### We have to print and plot before returning ############
-    ###########################################################################
-    print('######################### Amount Results #######################')
-    print(indexname+" Payout Statistics \nMax Payout: ",
-          round(np.nanmax(meanindemnity), 2),
-          "\nMinimum Payout: ", round(np.nanmin(meanindemnity), 2),
-          "\nMedian Payout: ", round(np.nanmedian(meanindemnity), 2),
-          "\nMean Payout: ", round(np.nanmean(meanindemnity), 2),
-          "\nPayout Standard Deviation: ", round(np.nanstd(meanindemnity), 2))
-    print('######################### Results ##############################')
-
-    insurance_package_all = [producerpremiums, indemnities, frequencies, pcfs,
-                             nets, lossratios, meanppremium, meanindemnity,
-                             frequencysum, meanpcf, net, lossratio]
-
-    print("Insurance Model Calculated. " + indexname + ": " + str(startyear) +
-          " - " + str(endyear) + " at " + str(int(strike*100)) + "%")
-    print("Return Order: producerpremiums, indemnities, frequencies, pcfs, " +
-          "nets, lossratios, meanppremium, meanindemnity, frequencysum, " +
-          "meanpcf, net, lossratio")
-    return insurance_package_all
-
 
 # In[] Calculating new premiums
 def premiumLoading(indexlist, pcfs, strike=.7, interval=1):
     '''
     This is as work in progress because I don't know how they calculate the
-    loading rates over the pure risk premium. For now this find the average PCF
-    values for each interval of a given index (back to 1948) and simply
-    multiplies that by the corresponding loading rates found from the rainfall
-    index
+    loading rates over the pure risk premium. For now this finds the average
+    PCF values for each interval of a given index (back to 1948) and simply
+    multiplies that by the corresponding average loading rate found from the
+    rainfall index.
     '''
     # Use either a precalculated list or a path to generate the index arrays
     # Get all of the rainfall indices
     if str(type(indexlist)) != "<class 'list'>":
         arraypath = indexlist
         datepath = indexlist.replace("arrays", "dates")
-        indexlist = npzIn(arraypath,
-                          datepath)
+        indexlist = npzIn(arraypath, datepath)
 
-    # We need strings and numeric strikes and intervals
+    # We need strings of the numeric strikes and intervals
     interval_string = "%02d" % interval
     strike_string = "%02d" % int(strike * 100)
 
@@ -1363,7 +1051,7 @@ def premiumLoading(indexlist, pcfs, strike=.7, interval=1):
     ratio = ratios.loading_factor[(ratios.strike == strike) &
                                   (ratios.intervals == interval)]
 
-    # Get the new, simple premium map
+    # Get the new, simpler premium map
     premium = pcf*float(ratio)
 
     return ['PRATES_' + strike_string + '_' + interval_string, premium]
@@ -1371,7 +1059,7 @@ def premiumLoading(indexlist, pcfs, strike=.7, interval=1):
 
 # In[] Indemnity Calculator
 def insuranceCalc(index, productivity, strike, acres, allocation, bases,
-                  premiums, mask, key, payscalar):
+                  premiums, mask, key, payscalar, interval_restriction=False):
     '''
     This calculates only the total premium and producer premium charged for
     each hypothetical plan, and returns those along with the indemnities for
@@ -1386,19 +1074,21 @@ def insuranceCalc(index, productivity, strike, acres, allocation, bases,
     eligibleindex[eligibleindex > 0] = 1
 
     ############## Actuarial rates ########################################
-    baselabels = [b[0] for b in bases]
-    targetbaselabel = "BRATES_" + name[-2:]
-    targetbaseindex = baselabels.index(targetbaselabel)
-    base = bases[targetbaseindex][1]  # This chooses the base value of the appropriate interval # [1] because that is the array index
+    if interval_restriction:
+        baselabels = [b[0] for b in bases]
+        targetbaselabel = "BRATES_" + name[-2:]
+        targetbaseindex = baselabels.index(targetbaselabel)
+        base = bases[targetbaseindex][1]  # This specifies base rates by interval according to the RI's eligibility
+    else:
+        base = bases[0][1]  # This applies full eligibility
     premiumlabels = [p[0] for p in premiums]
     targetpremiumlabel = "PRATES_" + str(int(100*strike)) + "_" + name[-2:]
     targetpremiumindex = premiumlabels.index(targetpremiumlabel)
     premiumrate = premiums[targetpremiumindex][1]
-#    premiumrate = premiums[premiums[0][-5:-3] == strike and premiums[0][-2:] == name[-2:]][0] # This chooses the premium rate at the right interval and strike level
 
     ############# Protection ##############################################
-    # Default Protection amount
-    protection = base*strike*productivity*acres*allocation
+    # Default Protection amount - scale here for payments and premiums
+    protection = base * strike * productivity * acres * allocation * payscalar
 
     ############## Subsidies ##############################################
     # Subsidy rates given strike level
@@ -1409,32 +1099,33 @@ def insuranceCalc(index, productivity, strike, acres, allocation, bases,
     
     ############# Premium #################################################
     # Simply the premium times the protection
-    totalpremium = premiumrate*protection
-    
+    totalpremium = premiumrate * protection
+
     ############# Payments ################################################
     # Producer Premium
-    producerpremium = totalpremium*(1-subsidyrate)
+    producerpremium = totalpremium * (1 - subsidyrate)
     subsidy = totalpremium - producerpremium
-    
+
     ############# Payouts #################################################
-    # Payout Calculation Factor - so the payout is proportional to the level of "loss"
-    pcf = abs((strike2-index)/strike2)
+    # Payout Calculation Factor
+    pcf = abs((strike2 - index)/strike2)
+
     # Indemnity
-    indemnity = pcf*protection*eligibleindex*payscalar
-    
+    indemnity = pcf * protection * eligibleindex
+
     ############# Return everything #####################
-    return([subsidy,producerpremium,indemnity,totalpremium])
-    
-    
+    return([subsidy, producerpremium, indemnity, totalpremium])
+
+
 ###############################################################################
 ########################## Mask Maker  ########################################
 ############################################################################### 
-def makeMask(rasterpath,savepath):
+def makeMask(rasterpath, savepath):
     """
         This will take in a tif and output a mask of NaNs and 1's
     """
 
-    mask = gdal.Open(rasterpath) # this is not an actual mask quite yet, 4 indicates 1/4th resolution
+    mask = gdal.Open(rasterpath) # this is not an actual mask quite yet
     geometry = mask.GetGeoTransform()
     arrayref = mask.GetProjection()
     mask = np.array(mask.GetRasterBand(1).ReadAsArray())
@@ -1442,7 +1133,8 @@ def makeMask(rasterpath,savepath):
     ypixels = mask.shape[0]
     mask[mask == np.min(mask)] = np.nan
     mask = mask*0 + 1
-    image = gdal.GetDriverByName("GTiff").Create(savepath,xpixels, ypixels, 1,gdal.GDT_Float32)
+    image = gdal.GetDriverByName("GTiff").Create(savepath,
+                                xpixels, ypixels, 1,gdal.GDT_Float32)
     image.SetGeoTransform(geometry)
     image.SetProjection(arrayref)
     image.GetRasterBand(1).WriteArray(mask)
@@ -1610,7 +1302,7 @@ def npzOut(indexlist, savepath):
     datepath = os.path.join(savepath, name + "_dates.npz")
 
     # Can't save arrays with the dates :/
-    arrays = [a[1] for a in indexlist]
+    arrays = np.stack([a[1] for a in indexlist])
     arraypath = os.path.join(savepath, name + "_arrays.npz")
 
     # Save each
@@ -1619,9 +1311,10 @@ def npzOut(indexlist, savepath):
 
 
 # In[] The Optimal Interval Experiment
-def optimalIntervalExperiment(rasterpath, targetinfo, targetarrayname,
+def optimalIntervalExperiment(indexlist, targetinfo, targetarrayname,
                               studyears, informinginfo, informingarrayname,
-                              informingyears, strike, savename):
+                              informingyears, strike, savename, plot=True,
+                              save=True, interval_restriction=False):
     '''
         This is an experiment to check the ability of different indices to be
             exploited for temporal trends from historic patterns.
@@ -1629,6 +1322,17 @@ def optimalIntervalExperiment(rasterpath, targetinfo, targetarrayname,
         Target arrays = payments or net payments
         Informing arrays = payout triggers or pcfs
     '''
+    # Actuarial rates
+    grid = readRaster("c:/users/user/github/data/rma/prfgrid.tif",
+                      1, -9999)[0]
+
+    premiums = npzIn('c:/users/user/github/data/actuarial/' +
+                     'premium_arrays_2018.npz',
+                     'c:/users/user/github/data/actuarial/' +
+                     'premium_dates_2018.npz')
+    bases = npzIn('c:/users/user/github/data/actuarial/base_arrays_2018.npz',
+                  'c:/users/user/github/data/actuarial/base_dates_2018.npz')
+
     # Insurance Call
     # First get the insurance payment results
     # Argument Definitions
@@ -1636,47 +1340,64 @@ def optimalIntervalExperiment(rasterpath, targetinfo, targetarrayname,
     productivity = 1
     acres = 500
     allocation = .5
-    difference = 0  # 0 = indemnities, 1 = net payouts, 2 = lossratios
-    maskpath = "d:\\data\\droughtindices\\masks\\nad83\\mask4.tif"
-#    maskpathalbers = "d:\\data\\droughtindices\\masks\\albers\\mask4.tif"
-    mask, geom, proj = readRaster(maskpath,1,-9999)
-    
-#    mask2, geomalbers, projalbers = readRaster(maskpathalbers,1,-9999)
+    grid, geom, proj = readRaster("C:/users/user/github/data/rma/prfgrid.tif",
+                                  1, -9999)
+    mask = grid * 0 + 1
     if informinginfo == 2:
         informfolder = "byfrequency"
     elif informinginfo == 3:
         informfolder = "bypcf"
 
-    #run this for the PCF information period
-    dfs = indexInsurance(rasterpath, actuarialyear, informingyears, informingyears, productivity, strike, 
-                                 acres, allocation, difference = difference,scale = True,plot = False)
-             
+    # run this for the PCF information period
+    dfs = indexInsurance(indexlist,
+                         grid,
+                         premiums,
+                         bases,
+                         actuarialyear,
+                         informingyears,
+                         informingyears,  # This repeat is on purpose
+                         productivity,
+                         strike,
+                         acres,
+                         allocation,
+                         scale=True,
+                         plot=False,
+                         interval_restriction=False)
+
     informingarrays = dfs[informinginfo]
+
+    # Now let's create an eligibility list for the Rainfall index
+    ppremiums = dfs[0]
+    eligibility = [[p[0][-2:], p[1]*0+1] for p in ppremiums]
 
     ############### Find Optimal Intervals ####################################
     # Here we want to see the optimal interval choice for each cell
     # We need to find the max and second max payout, payments, or pcfs
     # First bin pcfs in monthly groups
 
-    def optimalIntervals(arraylist):
+    def optimalIntervals(arraylist, eligibility):
         """
-        Creates two arrays of cell-wise months associated with the highest two 
-            average monthly values given an input of a monthly time series of 
-            arrays. The first array is the time interval where the maximum average
-            values are found, and the second array is the time interval of the 
-            second highest average values. Do this with a full study period, or not
-            but be careful about this.
+        Creates two arrays of cell-wise months associated with the highest two
+            average monthly values given an input of a monthly time series of
+            arrays. The first array is the time interval where the maximum
+            average values are found, and the second array is the time interval
+            of the second highest average values. Do this with a full study
+            period, or not but be careful about this.
         """
-        # Groups the values into monthly averages
-        months = monthlies(arraylist) # arraylist here is any of the full study period variables with names 
-    
+        # Groups the informing values into interval-wise averages
+        months = monthlies(arraylist)
+
+        # Multiply by eligibility layers
+        months = [[months[i][0], months[i][1] * eligibility[i][1]] for
+                  i in range(len(months))]
+
         # remove the names from the list
         justarrays = [month[1] for month in months]
-    
+
         # Get rid of nans
         for i in justarrays:
             i[np.isnan(i)] = -9999
-        
+
         def bestInterval(arrays):
             def bestOne(lst):
                 lst = list(lst)
@@ -1685,8 +1406,8 @@ def optimalIntervalExperiment(rasterpath, targetinfo, targetarrayname,
                 one = ts[len(ts)-1]
                 p1 = lst.index(one)
                 return p1
-            return np.apply_along_axis(bestOne, axis = 0, arr = arrays)
-    
+            return np.apply_along_axis(bestOne, axis=0, arr=arrays)
+
         def secondBestInterval(arrays):
             def bestOne(lst):
                 lst = list(lst)
@@ -1695,254 +1416,325 @@ def optimalIntervalExperiment(rasterpath, targetinfo, targetarrayname,
                 two = ts[len(ts)-2]
                 p2 = lst.index(two)
                 return p2
-            return np.apply_along_axis(bestOne, axis = 0, arr = arrays)
-    
+            return np.apply_along_axis(bestOne, axis=0, arr=arrays)
+
         bests = bestInterval(justarrays)*mask
         seconds = secondBestInterval(justarrays)*mask
-        return [bests,seconds]
-    
-    # This will give the bimonthly intervals associated with the highest two pcfs
-        # for each cell
-    bests,seconds = optimalIntervals(informingarrays)
-    
-    
+        return [bests, seconds]
+
+    # This will give the bimonthly intervals associated with the highest two
+    # informing values (pcfs, frequencies, payments) for each cell
+    bests, seconds = optimalIntervals(informingarrays, eligibility)
+
     ############### Reset and Build Seasonal Payouts ##########################
     # Run again for the study years
-    
-    dfs = indexInsurance(rasterpath, actuarialyear, studyears, informingyears, productivity, strike, 
-                                 acres, allocation, difference = difference,scale = True,plot = False) 
-    targetarrays = dfs[targetinfo]
-    
+    dfs = indexInsurance(indexlist,
+                         grid,
+                         premiums,
+                         bases,
+                         actuarialyear,
+                         studyears,   # Using the study period now
+                         informingyears,
+                         productivity,
+                         strike,
+                         acres,
+                         allocation,
+                         scale=True,
+                         plot=False,
+                         interval_restriction=False)
+
+    targetrays = dfs[targetinfo]
+
     # get seasonal indemnification
-    winter = [i for i in targetarrays if i[0][-2:] == '11' or i[0][-2:] == '01']
-    spring = [i for i in targetarrays if i[0][-2:] == '02' or i[0][-2:] == '04']
-    summer = [i for i in targetarrays if i[0][-2:] == '05' or i[0][-2:] == '07']
-    fall   = [i for i in targetarrays if i[0][-2:] == '08' or i[0][-2:] == '10']
-    
+    winter = [i for i in targetrays if i[0][-2:] == '11' or i[0][-2:] == '01']
+    spring = [i for i in targetrays if i[0][-2:] == '02' or i[0][-2:] == '04']
+    summer = [i for i in targetrays if i[0][-2:] == '05' or i[0][-2:] == '07']
+    fall = [i for i in targetrays if i[0][-2:] == '08' or i[0][-2:] == '10']
+
     # Get total cell-wise values
-    wintersum = np.nansum([i[1] for i in winter],axis = 0)*mask
-    springsum = np.nansum([i[1] for i in spring],axis = 0)*mask
-    summersum = np.nansum([i[1] for i in summer],axis = 0)*mask
-    fallsum   = np.nansum([i[1] for i in fall],axis = 0)*mask
-    
+    wintersum = np.nansum([i[1] for i in winter], axis=0)*mask
+    springsum = np.nansum([i[1] for i in spring], axis=0)*mask
+    summersum = np.nansum([i[1] for i in summer], axis=0)*mask
+    fallsum = np.nansum([i[1] for i in fall], axis=0)*mask
+
     # Get mean cell-wise values
-    wintermean = np.nanmean([i[1] for i in winter],axis = 0)*mask
-    springmean = np.nanmean([i[1] for i in spring],axis = 0)*mask
-    summermean = np.nanmean([i[1] for i in summer],axis = 0)*mask
-    fallmean   = np.nanmean([i[1] for i in fall],axis = 0)*mask
-    
+    wintermean = np.nanmean([i[1] for i in winter], axis=0)*mask
+    springmean = np.nanmean([i[1] for i in spring], axis=0)*mask
+    summermean = np.nanmean([i[1] for i in summer], axis=0)*mask
+    fallmean = np.nanmean([i[1] for i in fall], axis=0)*mask
+
     # Get max cell-wise values
-    wintermax = np.nanmax([i[1] for i in winter],axis = 0)*mask
-    springmax = np.nanmax([i[1] for i in spring],axis = 0)*mask
-    summermax = np.nanmax([i[1] for i in summer],axis = 0)*mask
-    fallmax   = np.nanmax([i[1] for i in fall],axis = 0)*mask
-    
+    wintermax = np.nanmax([i[1] for i in winter], axis=0)*mask
+    springmax = np.nanmax([i[1] for i in spring], axis=0)*mask
+    summermax = np.nanmax([i[1] for i in summer], axis=0)*mask
+    fallmax = np.nanmax([i[1] for i in fall], axis=0)*mask
+
     ############### Use Optimal Intervals #####################################
-    # We want a map where each cell sums up the payments from the intervals with the
-        # two highest mean pcfs
-    def optimalValues(arrays,yearstring,bests,seconds):
+    # We want a map where each cell sums up the payments from the intervals
+    # with the two highest mean pcfs
+    def optimalValues(arrays, yearstring, bests, seconds):
         """
-        Here arrays should be a series of whichever with names, so the original 
-            timeseries returns. Then we can do this for each year and add them up 
-            to match the seasonal payouts. I could do all of that in a single 
-            function, but that could get super confusing quickly.
+        Here arrays should be a series of whichever with names, so the original
+            timeseries returns. Then we can do this for each year and add them
+            up to match the seasonal payouts. I could do all of that in a
+            single function, but that could get super confusing quickly.
         """
-        # Add the best and second best arrays to the stack so that each cell's time-series 
-            # includes these figures in the last two positions
+        # Add the best and second best arrays to the stack so that each cell's
+        # time-series includes these figures in the last two positions
         yearays = [i[1] for i in arrays if i[0][-6:-2] == yearstring]
         bests2 = np.copy(bests)
         seconds2 = np.copy(seconds)
         yearays.append(bests2)
         yearays.append(seconds2)
-        
+
         # Remove nans, don't know how to deal with them here
         for a in yearays:
             a[np.isnan(a)] = 0
-          
+
         # Cellwise function for each of the two intervals
         def bestOne(lst):
-            lst = list(lst)        
+            lst = list(lst)
             ts = np.copy(lst)
-            bestpos = ts[len(lst)-2] # Best position is now second to last 
+            bestpos = ts[len(lst)-2]  # Best position is now second to last
             values = ts[:len(lst)-2]
             top = values[int(bestpos)]
             return top
+
         def secondBest(lst):
-            lst = list(lst)        
+            lst = list(lst)
             ts = np.copy(lst)
-            secondbestpos = ts[len(lst)-1] # and the second best is now last :)
+            secondbestpos = ts[len(lst)-1]  # the second best is now last :)
             values = ts[:len(lst)-2]
             second = values[int(secondbestpos)]
             return second
-        
-        # Call each function and add the results together to simulate the optimal 
-            # 50% allocation strategy based on PCFs histories.
-        bestarray = np.apply_along_axis(bestOne,axis = 0, arr = yearays)*mask
-        secondarray = np.apply_along_axis(secondBest, axis = 0, arr = yearays)*mask
+
+        # Call each function and add the results together to simulate the
+        # optimal 50% allocation strategy based on PCFs histories.
+        bestarray = np.apply_along_axis(bestOne, axis=0, arr=yearays)*mask
+        secondarray = np.apply_along_axis(secondBest, axis=0, arr=yearays)*mask
         optimal = bestarray + secondarray
         return optimal
-    
-    # Now to add up the optimal payouts over the study period
-    years           = [str(i) for i in range(studyears[0],studyears[1]+1)]
-    optimalpayments = [optimalValues(targetarrays,ys,bests,seconds) for ys in tqdm(years)]
-    optimalsum      = np.nansum(optimalpayments,axis = 0)*mask
-    optimalmean     = np.nanmean(optimalpayments,axis = 0)*mask
-    optimalmax      = np.nanmax(optimalpayments,axis = 0)*mask
 
-    
+    # Now to add up the optimal payouts over the study period
+    years = [str(i) for i in range(studyears[0], studyears[1]+1)]
+    optimalpayments = [optimalValues(targetrays, ys, bests,
+                                     seconds) for ys in tqdm(years,
+                                                             position=0)]
+    optimalsum = np.nansum(optimalpayments, axis=0)*mask
+    optimalmean = np.nanmean(optimalpayments, axis=0)*mask
+    optimalmax = np.nanmax(optimalpayments, axis=0)*mask
+
     ###########################################################################
     ############################## Plot! ######################################
     ###########################################################################
     ############################ Shapefile ####################################
-    # Main Title Business
-    startyear = 2000
-    endyear = 2016
-    if startyear == endyear:
-        endyear = ""
-    else:
-        endyear = ' - '+str(endyear)
-    
-    fig= plt.figure()
-    fig.suptitle(targetarrayname + '-Based Potential Payments: '+str(startyear)+str(endyear), fontsize=15,fontweight = 'bold') #+' Strike Level: %'+ str(int(strike*100))+'; Rate Year: '+str(actuarialyear)
-    
-    # Establish Coloring Limits
-    vmin = 0
-    vmax = np.nanmax(np.nanmean(optimalsum)) + .5*np.nanmax(np.nanmean(optimalsum))
-    
-    # Function for fromatting colorbar labels
-    setCommas = FuncFormatter(lambda x, p: format(int(x), ',' ))
-    
-    # Establish subplot structure
-    ax1 = plt.subplot2grid((3, 3), (0, 0), colspan = 1)
-    ax2 = plt.subplot2grid((3, 3), (0, 1), colspan = 1)  
-    ax3 = plt.subplot2grid((3, 3), (0, 2), colspan = 1)#,rowspan = 2)    
-    ax4 = plt.subplot2grid((3, 3), (1, 0), colspan = 1)#,rowspan = 2) 
-    ax5 = plt.subplot2grid((3, 3), (1, 1), colspan = 1)#,rowspan = 2) 
-    ax6 = plt.subplot2grid((3, 3), (1, 2), colspan = 1)#,rowspan = 2) 
-    
-    # Set initial plot 4 parameters - this is an interactive barplot
-    ax1.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off')
-    ax2.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off')
-    ax3.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off')
-    ax4.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off')
-    ax5.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off')
-    ax6.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off')
-    
-    # Scootch things over
-    fig.tight_layout()
-    fig.subplots_adjust(left=.1, bottom=0.0, right=.975, top=.92,wspace=.015, hspace=.015)
-    
-    
-    # Plot 1 - Payout Frequency Distribution
-    im = ax1.imshow(wintersum,vmax = vmax)
-    ax1.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off') 
-    ax1.set_title('Winter')
-    ax1.annotate( "Intervals 11 & 1\n\n Total: $"+setCommas(np.nansum(wintersum)) + "\nMax:        $"+setCommas(np.nanmax(wintersum)),
-                    xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
-                    horizontalalignment='right', verticalalignment='bottom')
-    
-    
-    # Plot 2 - Payment Calculation Factor Distribution
-    im2 = ax2.imshow(springsum,vmax = vmax) 
-    ax2.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off') 
-    ax2.set_title('Spring')   
-    ax2.annotate( "Intervals 2 & 4\n\n Total: $"+setCommas(np.nansum(springsum)) + "\nMax:        $"+setCommas(np.nanmax(springsum)),
-                    xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
-                    horizontalalignment='right', verticalalignment='bottom')
-    
-    # Plot 3- Changes
-    im3 = ax3.imshow(summersum,vmax = vmax)
-    ax3.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off') 
-    ax3.set_title('Summer')
-    ax3.annotate( "Intervals 5 & 7\n\n Total: $"+setCommas(np.nansum(summersum)) + "\nMax:        $"+setCommas(np.nanmax(summersum)),
-                    xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
-                    horizontalalignment='right', verticalalignment='bottom')
-    
-    # Plot 4
-    im4 = ax4.imshow(fallsum,vmax = vmax)
-    ax4.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off') 
-    ax4.set_title('Fall')
-    ax4.annotate( "Intervals 8 & 10\n\n Total: $"+setCommas(np.nansum(fallsum)) + "\nMax:        $"+setCommas(np.nanmax(fallsum)),
-                    xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
-                    horizontalalignment='right', verticalalignment='bottom')
-    
-    # Plot 5
-    im5 = ax5.imshow(optimalsum,vmax = vmax)
-    ax5.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off') 
-    ax5.set_title("Highest Two "+informingarrayname+" Intervals")
-    ax5.annotate( "Various Intervals\n\n Total: $"+setCommas(np.nansum(optimalsum)) + "\nMax:        $"+setCommas(np.nanmax(optimalsum)),
-                    xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
-                    horizontalalignment='right', verticalalignment='bottom')
-    
-    # Plot 6
-    monthcolors = ['darkblue','b','greenyellow','yellowgreen','forestgreen',
-                   'darkgreen','green','darkkhaki','saddlebrown','slategrey',
-                   'cadetblue']
-    
-    cmap = matplotlib.colors.LinearSegmentedColormap.from_list('mycmap', monthcolors)
-    labels = ["Jan-Feb","Feb-Mar","Mar-Apr","Apr-May","May-Jun","Jun-Jul","Jul-Aug","Aug-Sep","Sep-Oct","Oct-Nov","Nov-Dec"]
-    bests = bests*mask
-    im6 = ax6.imshow(bests, cmap=cmap,label = labels)
-    ax6.tick_params(which='both',right = 'off',left = 'off', bottom='off', top='off',labelleft = 'off',labelbottom='off') 
-    ax6.set_title('Intervals With Highest ' + informingarrayname)
-    legend_elements = [Patch(facecolor=monthcolors[i], label=labels[i]) for i in range(0,10)]
-    ax6.legend(handles=legend_elements,loc = "right",fontsize =5.6,bbox_to_anchor=(.98, .4))
-    
-    # Shared Colorbar
-    # add_axes order = x0, y0, width, height
-    cax1 = fig.add_axes([0.075, 0.45, 0.012, 0.375]) 
-    cbar = plt.colorbar(im, cax=cax1, format = setCommas)
-    cbar.set_label('Potential Payment ($)', rotation=90, size = 10, labelpad =10, fontweight = 'bold')
-    cbar.ax.yaxis.set_label_position('left')
-    cbar.ax.yaxis.set_ticks_position('left')
-    
-    # Parameter info
-    plt.figtext(0.45, 0.3,' Strike Level: %'+ str(int(strike*100))+'; Rate Year: '+str(actuarialyear) + '; Acres: '+str(acres),
-                backgroundcolor='darkgreen',
-                color='white', weight='roman', size='x-small')
-    
-    savepath = "G:\\My Drive\\THESIS\\data\\Index Project\\Optimal Intervals\\"
+    if plot:
+        # Main Title Business
+        startyear = studyears[0]
+        endyear = studyears[1]
+        if startyear == endyear:
+            endyear = ""
+        else:
+            endyear = ' - ' + str(endyear)
 
-    toRaster(bests,savepath+informfolder+"\\nad83\\"+savename+"_bests_"+str(int(strike*100))+".tif", geom, proj)
-    toRaster(wintermean,savepath+informfolder+"\\nad83\\"+savename+"_winter_"+str(int(strike*100))+".tif", geom, proj)
-    toRaster(springmean,savepath+informfolder+"\\nad83\\"+savename+"_spring_"+str(int(strike*100))+".tif", geom, proj)
-    toRaster(summermean,savepath+informfolder+"\\nad83\\"+savename+"_summer_"+str(int(strike*100))+".tif", geom, proj)
-    toRaster(fallmean,savepath+informfolder+"\\nad83\\"+savename+"_fall_"+str(int(strike*100))+".tif", geom, proj)
-    toRaster(optimalmean,savepath+informfolder+"\\nad83\\"+savename+"_optimal_"+str(int(strike*100))+".tif",  geom, proj)
+        fig = plt.figure()
+        fig.suptitle(targetarrayname + '-Based Potential Payments: ' +
+                     str(startyear)+str(endyear), fontsize=15,
+                     fontweight='bold')
+
+        # Establish Coloring Limits
+        vmin = 0
+        vmax = np.nanmax(np.nanmean(optimalsum)) + .5*np.nanmax(
+                np.nanmean(optimalsum))
+    
+        # Function for fromatting colorbar labels
+        setCommas = FuncFormatter(lambda x, p: format(int(x), ','))
+    
+        # Establish subplot structure
+        ax1 = plt.subplot2grid((3, 3), (0, 0), colspan=1)
+        ax2 = plt.subplot2grid((3, 3), (0, 1), colspan=1)
+        ax3 = plt.subplot2grid((3, 3), (0, 2), colspan=1)  # ,rowspan = 2)
+        ax4 = plt.subplot2grid((3, 3), (1, 0), colspan=1)  # ,rowspan = 2)
+        ax5 = plt.subplot2grid((3, 3), (1, 1), colspan=1)  # ,rowspan = 2)
+        ax6 = plt.subplot2grid((3, 3), (1, 2), colspan=1)  # ,rowspan = 2)
+    
+        # Set initial plot 4 parameters - this is an interactive barplot
+        ax1.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax2.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax3.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax4.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax5.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax6.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+    
+        # Scootch things over
+        fig.tight_layout()
+        fig.subplots_adjust(left=.1, bottom=0.0, right=.975, top=.92,
+                            wspace=.015, hspace=.015)
+    
+        # Plot 1 - Payout Frequency Distribution
+        im = ax1.imshow(wintersum, vmax=vmax)
+        ax1.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax1.set_title('Winter')
+        ax1.annotate("Intervals 11 & 1\n\n Total: $" +
+                     setCommas(np.nansum(wintersum)) + "\nMax:        $" +
+                     setCommas(np.nanmax(wintersum)),
+                     xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
+                     horizontalalignment='right', verticalalignment='bottom')
+    
+        # Plot 2 - Payment Calculation Factor Distribution
+        im2 = ax2.imshow(springsum, vmax=vmax)
+        ax2.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax2.set_title('Spring')
+        ax2.annotate("Intervals 2 & 4\n\n Total: $" +
+                     setCommas(np.nansum(springsum)) + "\nMax:        $" +
+                     setCommas(np.nanmax(springsum)),
+                     xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
+                     horizontalalignment='right', verticalalignment='bottom')
+    
+        # Plot 3- Changes
+        im3 = ax3.imshow(summersum, vmax=vmax)
+        ax3.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax3.set_title('Summer')
+        ax3.annotate("Intervals 5 & 7\n\n Total: $" +
+                     setCommas(np.nansum(summersum)) + "\nMax:        $" +
+                     setCommas(np.nanmax(summersum)),
+                     xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
+                     horizontalalignment='right', verticalalignment='bottom')
+    
+        # Plot 4
+        im4 = ax4.imshow(fallsum, vmax=vmax)
+        ax4.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax4.set_title('Fall')
+        ax4.annotate("Intervals 8 & 10\n\n Total: $" +
+                     setCommas(np.nansum(fallsum)) + "\nMax:        $" +
+                     setCommas(np.nanmax(fallsum)),
+                     xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
+                     horizontalalignment='right', verticalalignment='bottom')
+    
+        # Plot 5
+        im5 = ax5.imshow(optimalsum, vmax=vmax)
+        ax5.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off') 
+        ax5.set_title("Highest Two " + informingarrayname + " Intervals")
+        ax5.annotate("Various Intervals\n\n Total: $" +
+                     setCommas(np.nansum(optimalsum)) + "\nMax:        $" +
+                     setCommas(np.nanmax(optimalsum)),
+                     xy=(.97, 0.1), xycoords='axes fraction', fontsize=6,
+                     horizontalalignment='right', verticalalignment='bottom')
+
+        # Plot 6
+        monthcolors = ["#050f51",  #'darkblue',
+                       "#1131ff",  #'blue',
+                       "#09bc45",  #'somegreensishcolor',
+                       "#6cbc0a",  #'yellowgreen',
+                       "#0d9e00",  #'forestgreen',
+                       "#075e00",  #'darkgreen',
+                       "#1ad10a",  #'green',
+                       "#fff200",  #'yellow',
+                       "#ff8c00",  #'red-orange',
+                       "#b7a500",  #'darkkhaki',
+                       "#6a7dfc"  #'darkerblue'
+                       ]
+
+        cmap = matplotlib.colors.LinearSegmentedColormap.from_list('mycmap',
+                                                                   monthcolors)
+        labels = ["Jan-Feb", "Feb-Mar", "Mar-Apr", "Apr-May", "May-Jun",
+                  "Jun-Jul", "Jul-Aug", "Aug-Sep", "Sep-Oct", "Oct-Nov",
+                  "Nov-Dec"]
+        bests = bests*mask
+        im6 = ax6.imshow(bests, cmap=cmap, label=labels)
+        ax6.tick_params(which='both', right='off', left='off', bottom='off',
+                        top='off', labelleft='off', labelbottom='off')
+        ax6.set_title('Intervals With Highest ' + informingarrayname)
+        legend_elements = [Patch(facecolor=monthcolors[i],
+                                 label=labels[i]) for i in range(0, 10)]
+        ax6.legend(handles=legend_elements, loc="right", fontsize=5.6,
+                   bbox_to_anchor=(.98, .4))
+    
+        # Shared Colorbar
+        # add_axes order = x0, y0, width, height
+        cax1 = fig.add_axes([0.075, 0.45, 0.012, 0.375])
+        cbar = plt.colorbar(im, cax=cax1, format=setCommas)
+        cbar.set_label('Potential Payment ($)', rotation=90, size=10, labelpad=10,
+                       fontweight='bold')
+        cbar.ax.yaxis.set_label_position('left')
+        cbar.ax.yaxis.set_ticks_position('left')
+    
+        # Parameter info
+        plt.figtext(0.45, 0.3, ' Strike Level: %' + str(int(strike*100)) +
+                    '; Rate Year: ' + str(actuarialyear) + '; Acres: ' +
+                    str(acres), backgroundcolor='darkgreen', color='white',
+                    weight='roman', size='x-small')
+    if save:
+        savepath = ("G:\\My Drive\\THESIS\\data\\Index Project\\" +
+                    "Optimal Intervals\\")
+        seriesdict = {0: 'premiums', 1: 'indemnities', 2: 'frequencies',
+                      3: 'pcfs', 4: 'nets', 5: 'lossratios'}
+
+        toRaster(bests, savepath + informfolder + "\\nad83\\" +
+                 seriesdict[targetinfo] + "\\" + savename + "_bests_" +
+                 str(int(strike*100)) + ".tif", geom, proj)
+        toRaster(wintermean, savepath + informfolder + "\\nad83\\" +
+                 seriesdict[targetinfo] + "\\" + savename + "_winter_" +
+                 str(int(strike*100)) + ".tif", geom, proj)
+        toRaster(springmean, savepath + informfolder + "\\nad83\\" +
+                 seriesdict[targetinfo] + "\\" + savename + "_spring_" +
+                 str(int(strike*100)) + ".tif", geom, proj)
+        toRaster(summermean, savepath + informfolder + "\\nad83\\" +
+                 seriesdict[targetinfo] + "\\" + savename +
+                 "_summer_" + str(int(strike*100)) + ".tif", geom, proj)
+        toRaster(fallmean, savepath + informfolder + "\\nad83\\" +
+                 seriesdict[targetinfo] + "\\" + savename +
+                 "_fall_" + str(int(strike*100)) + ".tif", geom, proj)
+        toRaster(optimalmean, savepath + informfolder + "\\nad83\\" +
+                 seriesdict[targetinfo] + "\\" + savename +
+                 "_optimal_" + str(int(strike*100)) + ".tif",  geom, proj)
 
     ###########################################################################
     ######################### Save Maxes, sums, index, and strike #############
     ###########################################################################
-    dfrm = {"index": savename, 
+    dfrm = {"index": savename,
             "strike": strike,
-            "wintermax":np.nanmax(wintermax),
-            "springmax":np.nanmax(springmax),
-            "summermax":np.nanmax(summermax),
-            "fallmax":np.nanmax(fallmax),
-            "optimalmax":np.nanmax(optimalmax),
-            "wintermean":np.nanmean(wintermean),
-            "springmean":np.nanmean(springmean),
-            "summermean":np.nanmean(summermean),
-            "fallmean":np.nanmean(fallmean),
-            "optimalmean":np.nanmean(optimalmean), 
-            "wintertotal":np.nansum(wintersum),
-            "springtotal":np.nansum(springsum),
-            "summertotal":np.nansum(summersum),
-            "falltotal":np.nansum(fallsum),
-            "optimaltotal":np.nansum(optimalsum)}
-    
+            "wintermax": np.nanmax(wintermax),
+            "springmax": np.nanmax(springmax),
+            "summermax": np.nanmax(summermax),
+            "fallmax": np.nanmax(fallmax),
+            "optimalmax": np.nanmax(optimalmax),
+            "wintermean": np.nanmean(wintermean),
+            "springmean": np.nanmean(springmean),
+            "summermean": np.nanmean(summermean),
+            "fallmean": np.nanmean(fallmean),
+            "optimalmean": np.nanmean(optimalmean),
+            "wintertotal": np.nansum(wintersum),
+            "springtotal": np.nansum(springsum),
+            "summertotal": np.nansum(summersum),
+            "falltotal": np.nansum(fallsum),
+            "optimaltotal": np.nansum(optimalsum)}
+
     return dfrm
-####################################################################################################
-###################### Probability Matching for strike levels ######################################
-####################################################################################################
-def probMatch(indexlist,noaalist,strike,binumber = 100, limmax = 0, plot = True):
+
+
+###############################################################################
+###################### Probability Matching for strike levels #################
+###############################################################################
+def probMatch(indexlist, noaalist, strike, binumber=100, limmax=0, plot=True):
     '''
     rasterpath = path to folder of drought index rasters to be made into arrays
-    noaapath = path to folder of rma rainfall rasters to be made into arrays (none normalized)
+    noaapath = path to folder of rma rainfall rasters to be made into arrays
     strike = PRF strike level to convert
     binumber = number of bins to put values in
     linmax = index value limit for noaa precip (it extends quite far)
-    
+
     This will take in a list of drought index values, generate a histogram for both that and the 
         noaa index and then calculate the drought index value that corresponds with an equal 
         probability of occurence in the noaa index for a chosen strike level. 
@@ -2383,8 +2175,8 @@ def readRasters2(rasterpath, navalue=-9999):
             del rast
             array = array.astype(float)
             array[array == navalue] = np.nan
-            name = str.upper(names[i][:-len(ext)])  
-            alist.append([name, array]) 
+            name = str.upper(names[i][:-len(ext)])
+            alist.append([name, array])
         except RuntimeError:
             pass
     return(alist, geometry, arrayref)

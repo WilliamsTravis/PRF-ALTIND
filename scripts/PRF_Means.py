@@ -46,8 +46,8 @@ indexnames = {'noaa': 'NOAA',  'pdsi': 'PDSI', 'pdsisc': 'PDSIsc',
 
 # Insurance parameters
 strikes = [.7, .75, .8, .85, .9]
-studyears = [1948, 2017]
-baselineyears = studyears
+studyears = [1948, 2016]
+baselineyears = [1948, 2016]
 actuarialyear = 2018
 productivity = 1
 acres = 500
@@ -70,7 +70,7 @@ for i in tqdm(indices, position=0):
                             s,  # Strike
                             acres,  # Acres
                             allocation,  # Allocation
-                            scale=False,
+                            scale=True,
                             plot=False)
 
         # Get Drought index stats
@@ -84,9 +84,9 @@ for i in tqdm(indices, position=0):
 avdf = pd.DataFrame(averages)
 avdf.columns = ['index', 'strike', 'meanpayment']
 avdf.to_csv("G:/my drive/thesis/data/Index Project/" +
-            "PRF_meanpayments_unscaled.csv")
+            "PRF_meanpayments_scaled.csv")
 avdf = pd.read_csv("G:/my drive/thesis/data/Index Project/" +
-                   "PRF_meanpayments_unscaled.csv")
+                   "PRF_meanpayments_scaled.csv")
 
 # Plot distribution
 fig = plt.figure()

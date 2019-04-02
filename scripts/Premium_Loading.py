@@ -14,7 +14,7 @@ import warnings
 warnings.filterwarnings("ignore")
 sys.path.insert(0, 'c:/Users/User/Github/PRF-ALTIND')
 os.chdir('c:/Users/User/Github')
-from functions import npzIn, indexInsurance, readRaster
+from functions import npzIn, indexInsurance, insuranceCalc, readRaster
 
 # In[] Argument Definitions
 grid, geom, proj = readRaster("data/rma/prfgrid.tif", 1, -9999)
@@ -34,38 +34,49 @@ bases = npzIn('data/actuarial/base_arrays_2018.npz',
               'data/actuarial/base_dates_2018.npz')
 
 # Get all of the rainfall indices
-indexlist = npzIn("data/indices/pdsi_arrays.npz",
-                  "data/indices/pdsi_dates.npz")
+indexlist = npzIn("data/indices/noaa_arrays.npz",
+                  "data/indices/noaa_dates.npz")
 
 # In[] Get sample indemnities at 70% - which allocation?
-indexlist = "data/indices/pdsi_arrays.npz"
+# indexlist = "data/indices/noaa_arrays.npz"
 df = indexInsurance(indexlist,  # Index Path
                     grid,
                     premiums,
                     bases,
                     2018,  # Actuarial Year
-                    [1948, 2018],  # Study years
+                    [1948, 2016],  # Study years
                     [1948, 2016],  # Baseline
                     1,  # Productivity
                     .7,  # Strike
                     1,  # Acres
                     1,  # Allocation
                     scale=True,
-                    plot=False)
+                    plot=False,
+                    interval_restriction=True)
 payouts = df[1]
-premiums = df[0]
+ppremiums = df[0]
 pcf = df[9]
 
 # now take the premium rates at 70%
-premiums_70 = [p for p in premiums if p[0][7:9] == "70"]
+premiums_70 = [p[1] for p in premiums if p[0][7:9] == "70"]
 
 # Payouts showed no pattern, take both premiums and pcfs in the 1st interval
-p = premiums_70[10][1]
-pcfs = df[3]
-pcfs = [i[1] for i in pcfs if i[0][-2:] == "11"]
-pcf = np.nanmean(pcfs, axis=0)
-ratio = p/pcf
-ratio_mean = np.nanmean(ratio)
+intervals = ["%02d"%i for i in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]]
+pcfs_70 = df[3]
+# pcfs = [i[1] for i in pcfs_70 if i[0][-2:] == "07"]
+pcf_means = [[p[1] for p in pcfs_70 if p[0][-2:] == i] for i in intervals]
+pcf_means = [np.nanmean(p, axis=0) for p in pcf_means]
+ratios = [premiums_70[i]/pcf_means[i] for i in range(len(pcf_means))]
+# pcf = np.nanmean(pcfs, axis=0)
+# ratio = p/pcf
+# ratio_mean = np.nanmean(ratio)
+
+# take a sample monthly series of ratios and pcf means at some location
+sample_pcfs = [p[30, 30] for p in pcf_means]
+sample_ratios = [r[30, 30] for r in ratios]
+df = pd.DataFrame({'pcfs': sample_pcfs, 'ratios': sample_ratios})
+
+
 
 # 1.19 seems right after the loading factors are incorporated. There were clear
 # adjustments in some places but the replica premium rate map looks virtually
@@ -117,21 +128,21 @@ def premiumLoading(indexlist, pcfs, premiums, bases,
     pcf = np.nanmean(pcf_specific, axis=0)
 
     # Get the right RMA premium rates
-    # premium_specific = [p for p in premiums if p[0][-5:-3] == strike_string and
-    #                     p[0][-2:] == interval_string][0][1]
+    premium_specific = [p for p in premiums if p[0][-5:-3] == strike_string and
+                        p[0][-2:] == interval_string][0][1]
 
     # Get the loading ratio and just use that for now. I can't find a pattern
-    loading_rates = pd.read_csv('loading_rates.csv')
+    # loading_rates = pd.read_csv('PRF-ALTIND/loading_rates.csv')
+
     # get the ratio
     ratios = premium_specific/pcf
-    ratio = np.nanmean(ratios)
+    ratio = np.nanmean(ratios)  # Here is the shortcut
     premium = ratio*pcf
 
     return premium_specific, premium, ratio, np.nanmean(pcf)
 
 
 # Try a few
-
 strike = .8
 interval = 3
 indexlist, pcfs = getPCFs("noaa", strike)

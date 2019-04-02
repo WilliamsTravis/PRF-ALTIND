@@ -20,7 +20,7 @@ os.chdir('c:/users/user/github/')
 grid, geom, proj = readRaster("data/rma/prfgrid.tif", 1, -9999)
 actuarialyear = 2018
 baselineyears = [1948, 2016]
-studyears = [1948, 2017]
+studyears = [2000, 2017]
 productivity = 1
 strike = .8
 acres = 500
@@ -29,8 +29,8 @@ returndict = {'producerpremiums': 0, 'indemnities': 1, 'frequencies': 2,
               'pcfs': 3, 'nets': 4, 'lossratios': 5, 'meanppremium': 6,
               'meanindemnity': 7, 'frequencysum': 8, 'meanpcf': 9, 'net': 10,
               'lossratio': 11}
-index = 'spi6'
-returntype = 'meanindemnity'
+index = 'noaa'
+returntype = 'meanpcf'
 
 # In[] Support functions
 def npzIn(array_path, date_path):
@@ -70,19 +70,20 @@ for i in tqdm(indices, position=0):
                 returntype + "_" + str(studyears[0]) + "_" +
                 str(studyears[1]) + '.tif')
     indexlist = npzIn(index_paths[i], date_paths[i])
-    df = indexInsurance_perc(indexlist,  # Index Path
-                             grid,
-                             premiums,
-                             bases,
-                             actuarialyear,  # Actuarial Year
-                             studyears,  # Study years
-                             baselineyears,  # Baseline
-                             1,  # Productivity
-                             strike,  # Strike
-                             acres,  # Acres
-                             allocation,  # Allocation
-                             scale=False,
-                             plot=False)
+    df = indexInsurance(indexlist,  # Index Path
+                        grid,
+                        premiums,
+                        bases,
+                        actuarialyear,  # Actuarial Year
+                        studyears,  # Study years
+                        baselineyears,  # Baseline
+                        1,  # Productivity
+                        strike,  # Strike
+                        acres,  # Acres
+                        allocation,  # Allocation
+                        scale=True,
+                        plot=False,
+                        interval_restriction=False)
 
     # Get return and save to a geotiff
     data = df[returndict[returntype]]
