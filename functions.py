@@ -10,28 +10,28 @@ import os
 
 if platform == 'win32':
     homepath = "C:/users/user/github/"
-    os.chdir(homepath + "PRF-ALTIND")
+    # os.chdir(homepath + "PRF-ALTIND")
     from flask_cache import Cache  # This one works on Windows but not Linux
     import gdal
     # import rasterio
-    import boto3
+    # import boto3
     import urllib
-    import botocore
-    def PrintException():
-        exc_type, exc_obj, tb = sys.exc_info()
-        f = tb.tb_frame
-        lineno = tb.tb_lineno
-        filename = f.f_code.co_filename
-        linecache.checkcache(filename)
-        line = linecache.getline(filename, lineno, f.f_globals)
-        print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename,
-              lineno, line.strip(), exc_obj))
+    # import botocore
+    # def PrintException():
+    #     exc_type, exc_obj, tb = sys.exc_info()
+    #     f = tb.tb_frame
+    #     lineno = tb.tb_lineno
+    #     filename = f.f_code.co_filename
+    #     linecache.checkcache(filename)
+    #     line = linecache.getline(filename, lineno, f.f_globals)
+    #     print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename,
+    #           lineno, line.strip(), exc_obj))
 
     gdal.UseExceptions()
     print("GDAL version:" + str(int(gdal.VersionInfo('VERSION_NUM'))))
 else:
     homepath = "/home/ubuntu/"
-    os.chdir(homepath+"PRF-ALTIND")
+    # os.chdir(homepath+"PRF-ALTIND")
     from flask_caching import Cache  # This works on Linux but not Windows :)
 
 ###############################################################################
@@ -188,29 +188,31 @@ def basisCheck(usdm,noaa,strike,dm):
     drought = np.copy(usdm)
     drought[drought >= dm] = 9999
     drought[drought < 6] = 1
-    
+
     # get cell at or below strike level rain
     rainless = np.copy(noaa)
     rainless[rainless <= strike] = 9999
-    rainless[rainless < 9999] = 2 # No payouts. I had to set the triggered payouts to a high number to escape the index value range.
-    rainless[rainless == 9999] = 1 # Payouts
-    
+    rainless[rainless < 9999] = 2  # No payouts. I had to set the triggered payouts to a high number to escape the index value range.
+    rainless[rainless == 9999] = 1  # Payouts
+
     # Now, where are the 1's in drought that aren't in rainless?
     basis = rainless*drought
-    basis[basis < 19998] = 0 # 19998 is where no payouts and drought intersect (9999*2)
+    basis[basis < 19998] = 0  # 19998 is where no payouts and drought intersect (9999*2)
     basis[basis == 19998] = 1
-    
+
     return basis
 
-@jit(nopython=True)
+
+# @jit(nopython=True)  # It doesn't seem to recognize the ma module
 def cellCorr(indexrays, grassrays):
     '''cellwise correlations between to time series of arrays'''
+
     template = np.zeros((indexrays.shape[0], indexrays.shape[1]))
     for i in range(indexrays.shape[0]):
         for j in range(indexrays.shape[1]):
             x = indexrays[i, j]
             y = grassrays[i, j]
-            r = np.corrcoef(x, y)[1, 0]
+            r = np.ma.corrcoef(x, y)[1, 0]
             template[i, j] = r
     return template
 
@@ -313,12 +315,7 @@ def im(array):
     '''
     This just plots an array as an image
     '''
-    # plt.close()
-    # window = plt.get_current_fig_manager()
-    # window.canvas.manager.window.raise_()
-    # plt.close()
     fig = plt.imshow(array)
-    fig.figure.canvas.raise_()
 
 
 def indexHist(array, guarantee=1, mostfreq='n', binumber=1000, limmax=0, sl=0):
@@ -1193,7 +1190,7 @@ def prodCorr(production_path, min_year, max_year):
     converts it to 3d numpy arrays using a county shapefile, and then returns
     a data frame of average cell-wise pearsons correlation coefficients between
     the production data and each drought index in our study.
-    
+
     production = path to a NASS production file
     min_year   = beginning year of analysis
     max_year   = ending year of analysis
@@ -1233,28 +1230,40 @@ def prodCorr(production_path, min_year, max_year):
         print(index)
         # Okay now, get a drought index!
         indices = RasterArrays(paths[index], -9999.)
-    
+
         # Get name for dataframe
         indexname = indices.namedlist[0][0][:-7]
         indexnames.append(indexname)
-    
+
         # Aggregate by into bi-monthly bins, then by year
         if index == 'noaa':
             indexyears = agYear(indices, bimonthly=False)
         else:
             indexyears = agYear(indices, bimonthly=True)
-    
-    
+
         # Ok,filter for our year range
         hayears2 = [n for n in hayears if
                     int(n[0]) >= min_year and int(n[0]) <= max_year]
         indexyears2 = [n for n in indexyears if
-                      int(n[0]) >= min_year and int(n[0]) <= max_year]
-    
+                       int(n[0]) >= min_year and int(n[0]) <= max_year]
+
         # Get just the arrays
         indexrays = np.dstack([a[1] for a in indexyears2])
         hayrays = np.dstack([a[1] for a in hayears2])
-        corrs = cellCorr(indexrays, hayrays)
+
+        # Use top left corner to mask for nans
+        na = indexrays[0][0, 0]
+        if np.isnan(na):
+            ray1 = np.ma.masked_where(np.isnan(indexrays), indexrays)
+        else:
+            ray1 = np.ma.masked_where(indexrays == na, indexrays)
+
+        na = hayrays[0][0, 0]
+        if np.isnan(na):
+            ray2 = np.ma.masked_where(np.isnan(hayrays), hayrays)
+        else:
+            ray2 = np.ma.masked_where(hayrays == na, hayrays)
+        corrs = cellCorr(ray1, ray2)
         meancorr = np.nanmean(corrs)
         meancorrs[indexname] = meancorr
         correlations[indexname] = corrs
@@ -1402,6 +1411,49 @@ def monthlySD2(arraylist):
     # Average SD
     average = np.nanmean(sds)
     return(average)
+
+
+def movie(array, titles=None, axis=0):
+    '''
+    if the time axis is not 0, specify which it is.
+    '''
+    if titles is None:
+        titles = ["" for t in range(len(array))]
+    if type(titles) is str:
+        titles = [titles + ': ' + str(t) for t in range(len(array))]
+
+    fig, ax = plt.subplots()
+
+    ax.set_ylim((array.shape[1], 0))
+    ax.set_xlim((0, array.shape[2]))
+
+    im = ax.imshow(array[0, :, :], cmap='viridis_r')
+
+    def init():
+        if axis == 0:
+            im.set_data(array[0, :, :])
+        elif axis == 1:
+            im.set_data(array[:, 0, :])
+        else:
+            im.set_data(array[:, :, 0])
+        return im,
+
+    def animate(i):
+        if axis == 0:
+            data_slice = array[i, :, :]
+        elif axis == 1:
+            data_slice = array[:, i, :]
+        else:
+            data_slice = array[:, :, i]
+        im.set_data(data_slice)
+        ax.set_title(titles[i])
+        return im,
+    
+    anim = FuncAnimation(fig, animate, init_func=init, blit=False, repeat=True)
+
+    return anim
+
+
 
 ###########################################################################
 ############## Creating monthly averages at each cell #####################
