@@ -50,6 +50,7 @@ import matplotlib
 import matplotlib.pyplot as plt 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Patch
+from matplotlib.animation import FuncAnimation
 from matplotlib.ticker import FuncFormatter
 from numba import jit
 import numpy as np
@@ -1448,7 +1449,7 @@ def movie(array, titles=None, axis=0):
         im.set_data(data_slice)
         ax.set_title(titles[i])
         return im,
-    
+
     anim = FuncAnimation(fig, animate, init_func=init, blit=False, repeat=True)
 
     return anim
