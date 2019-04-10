@@ -1,0 +1,29 @@
+Parameter|Max Length|Definition
+
+source_desc|60|Source of data (CENSUS or SURVEY). Census program includes the Census of Ag as well as follow up projects. Survey program includes national, state, and county surveys.
+
+sector_desc|60|Five high level, broad categories useful to narrow down choices (CROPS, ANIMALS & PRODUCTS, ECONOMICS, DEMOGRAPHICS, and ENVIRONMENTAL).
+
+group_desc|80|Subsets within sector (e.g., under sector = CROPS, the groups are FIELD CROPS, FRUIT & TREE NUTS, HORTICULTURE, and VEGETABLES).
+
+commodity_desc|80|The primary subject of interest (e.g., CORN, CATTLE, LABOR, TRACTORS, OPERATORS). \n
+
+class_desc|180|Generally a physical attribute (e.g., variety, size, color, gender) of the commodity. \n
+
+prodn_practice_desc|180|A method of production or action taken on the commodity (e.g., IRRIGATED, ORGANIC, ON FEED).
+
+util_practice_desc|180|Utilizations (e.g., GRAIN, FROZEN, SLAUGHTER) or marketing channels (e.g., FRESH MARKET, PROCESSING, RETAIL).
+
+statisticcat_desc|80|The aspect of a commodity being measured (e.g., AREA HARVESTED, PRICE RECEIVED, INVENTORY, SALES).
+
+unit_desc|60|The unit associated with the statistic category (e.g., ACRES, $ / LB, HEAD, $, OPERATIONS).
+
+short_desc|512|A concatenation of six columns: commodity_desc, class_desc, prodn_practice_desc, util_practice_desc, statisticcat_desc, and unit_desc.
+
+domain_desc|256|Generally another characteristic of operations that produce a particular commodity (e.g., ECONOMIC CLASS, AREA OPERATED, NAICS CLASSIFICATION, SALES). For chemical usage data, the domain describes the type of chemical applied to the commodity. The domain = TOTAL will have no further breakouts; i.e., the data value pertains completely to the short_desc.
+
+domaincat_desc|512|Categories or partitions within a domain (e.g., under domain = SALES, domain categories include $1,000 TO $9,999, $10,000 TO $19,999, etc).
+
+value|24|Published data value or suppression reason code.
+
+CV %|7|Coefficient of variation. Available for the 2012 Census of Agriculture only. County-level CVs are generalized.

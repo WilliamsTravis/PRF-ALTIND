@@ -13,7 +13,7 @@ if platform == 'win32':
     os.chdir(homepath + "PRF-ALTIND")
     from flask_cache import Cache  # This one works on Windows but not Linux
     import gdal
-    import rasterio
+    # import rasterio
     import boto3
     import urllib
     import botocore
@@ -37,11 +37,12 @@ else:
 ###############################################################################
 import copy
 import dash
-from dash.dependencies import Input, Output, State, Event
+from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table_experiments as dt
 import gc
+import geopandas as gpd
 import glob
 import json
 from flask import Flask
@@ -50,6 +51,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.patches import Patch
 from matplotlib.ticker import FuncFormatter
+from numba import jit
 import numpy as np
 import numpy.ma as ma
 from collections import OrderedDict
@@ -59,8 +61,9 @@ import plotly
 import re 
 from textwrap import dedent
 import time
-from tqdm import *
+from tqdm import tqdm
 import xarray as xr
+
 
 # In[] Function to readjust index intervals
 def adjustIntervals(indexlist):
@@ -136,6 +139,19 @@ def adjustIntervals2(indexlist):
     # This becomes the index that we calculate payouts on
     return(newindex)
 
+def agYear(rasterarrays, bimonthly=True):
+    '''
+    Aggregate by year
+    '''
+    indexlist = rasterarrays.namedlist  # get the list
+    if bimonthly:
+        indexlist= adjustIntervals(indexlist)
+    years = np.unique([a[0][-6:-2] for a in indexlist])
+    yearays = [[n[1] for n in indexlist if y in n[0]] for y in years]
+    yearays = [np.nanmean(n, axis=0) for n in yearays]
+    yearays = [[years[i], yearays[i]] for i in range(len(years))]
+    return yearays
+
 
 ###########################################################################
 ##################### Quick Mode Function #################################
@@ -186,6 +202,19 @@ def basisCheck(usdm,noaa,strike,dm):
     
     return basis
 
+@jit(nopython=True)
+def cellCorr(indexrays, grassrays):
+    '''cellwise correlations between to time series of arrays'''
+    template = np.zeros((indexrays.shape[0], indexrays.shape[1]))
+    for i in range(indexrays.shape[0]):
+        for j in range(indexrays.shape[1]):
+            x = indexrays[i, j]
+            y = grassrays[i, j]
+            r = np.corrcoef(x, y)[1, 0]
+            template[i, j] = r
+    return template
+
+
 ###########################################################################
 ############## Finding Average Cellwise Coefficients of Variance ##########
 ########################################################################### 
@@ -233,6 +262,35 @@ def droughtCheck(usdm,dm):
 
     return drought
 
+
+def joinCounty(county, hay):
+    '''
+    This will create a dataframe with a time series of county and hay
+    production information.
+
+    With this we can either make a series of arrays of production by county
+    or go the other by transforming the index arrays into a data frame. I think
+    I'd like to go for the first option as it will allow us to see the results
+    spatially.
+    
+    How to go about that?
+    '''
+    fips = pd.read_csv('data/admin_df_0_25.csv')
+    fips['fips'] = fips['fips'].apply(lambda x: '{:05d}'.format(int(x)))
+    fips['state'] = fips['state'].apply(lambda x: x.upper())
+    fips['county'] = fips['county'].apply(lambda x: x.upper())
+    fips['cs'] = (fips['county'] + ', ' + fips['state'])
+    hay['cs'] = hay['County'] + ', ' + hay['State']
+    hay = hay.merge(fips, on='cs')
+    hay['fips'] = hay['fips'].astype(str)
+    county['fips'] = county['STATEFP'] + county['COUNTYFP']
+    hay_df = hay.merge(county, on='fips')
+    hay_df.columns = [c.lower().replace(' ', '_') for c in hay_df.columns]
+
+    return hay_df
+
+
+
 def droughtCheck2(rain,strike):
     '''
     Check how many cells in a single month were at or above the dm level
@@ -249,12 +307,23 @@ def droughtCheck2(rain,strike):
     drought[drought == -9999] = 1
 
     return drought
-###########################################################################
-##################### Quick Histograms ####################################
-###########################################################################    
-def indexHist(array,guarantee = 1,mostfreq = 'n',binumber = 1000, limmax = 0, sl = 0):
+
+
+def im(array):
     '''
-    array = single array or list of arrays
+    This just plots an array as an image
+    '''
+    # plt.close()
+    # window = plt.get_current_fig_manager()
+    # window.canvas.manager.window.raise_()
+    # plt.close()
+    fig = plt.imshow(array)
+    fig.figure.canvas.raise_()
+
+
+def indexHist(array, guarantee=1, mostfreq='n', binumber=1000, limmax=0, sl=0):
+    '''
+    array = 2 or 3D Numpy array
     '''
     
     # Check if it is a list with names, a list without names, a single array with a name, 
@@ -295,7 +364,7 @@ def indexHist(array,guarantee = 1,mostfreq = 'n',binumber = 1000, limmax = 0, sl
     # Get the bin width, and the frequency of values within, set some
     # graphical parameters and then plot!
     fig = plt.figure(figsize=(8, 8))
-    hists,bins = np.histogram(arrays,range = [amin,amax],bins = binumber,normed = False)
+    hists, bins = np.histogram(arrays,range = [amin,amax],bins = binumber,normed = False)
     if mostfreq != 'n':
         mostfreq =  float(bins[np.where(hists == np.max(hists))])
         targetbin = mostfreq
@@ -1117,9 +1186,88 @@ def insuranceCalc(index, productivity, strike, acres, allocation, bases,
     return([subsidy, producerpremium, indemnity, totalpremium])
 
 
-###############################################################################
-########################## Mask Maker  ########################################
-############################################################################### 
+def prodCorr(production_path, min_year, max_year):
+    '''
+    This takes production information from the National Agricultural
+    Statistics Service data browser (https://quickstats.nass.usda.gov/),
+    converts it to 3d numpy arrays using a county shapefile, and then returns
+    a data frame of average cell-wise pearsons correlation coefficients between
+    the production data and each drought index in our study.
+    
+    production = path to a NASS production file
+    min_year   = beginning year of analysis
+    max_year   = ending year of analysis
+    '''
+    indextags = ['noaa', 'pdsi', 'pdsisc', 'pdsiz', 'spei1', 'spei2', 'spei3',
+                 'spei6', 'spi1', 'spi2', 'spi3', 'spi6']
+    paths = {'noaa': r'F:\data\droughtindices\noaa\nad83',
+             'pdsi': r'F:\data\droughtindices\pdsi\nad83',
+             'pdsisc': r'F:\data\droughtindices\pdsisc\nad83',
+             'pdsiz': r'F:\data\droughtindices\pdsiz\nad83',
+             'spei1': r'F:\data\droughtindices\spei\nad83\1month',
+             'spei2': r'F:\data\droughtindices\spei\nad83\2month',
+             'spei3': r'F:\data\droughtindices\spei\nad83\3month',
+             'spei6': r'F:\data\droughtindices\spei\nad83\6month',
+             'spi1': r'F:\data\droughtindices\spi\nad83\1month',
+             'spi2': r'F:\data\droughtindices\spi\nad83\2month',
+             'spi3': r'F:\data\droughtindices\spi\nad83\3month',
+             'spi6': r'F:\data\droughtindices\spi\nad83\6month'}
+
+    # Join county information with production data
+    hay = pd.read_csv(production_path)
+    counties = gpd.read_file('data/cb_2017_us_county_500k')
+    hay_df = joinCounty(counties, hay)
+
+    # Transform production data into a list of 2d arrays with years
+    npy_path = os.path.splitext(production_path)[0] + '.npy'
+    if not os.path.exists(npy_path):
+        hayears = toArray(hay_df)
+        np.save(npy_path, hayears)
+    hayears = np.load(npy_path)
+
+    # Correlation loop to build data frame
+    correlations = {}
+    meancorrs = {}
+    indexnames = []
+    for index in indextags:
+        print(index)
+        # Okay now, get a drought index!
+        indices = RasterArrays(paths[index], -9999.)
+    
+        # Get name for dataframe
+        indexname = indices.namedlist[0][0][:-7]
+        indexnames.append(indexname)
+    
+        # Aggregate by into bi-monthly bins, then by year
+        if index == 'noaa':
+            indexyears = agYear(indices, bimonthly=False)
+        else:
+            indexyears = agYear(indices, bimonthly=True)
+    
+    
+        # Ok,filter for our year range
+        hayears2 = [n for n in hayears if
+                    int(n[0]) >= min_year and int(n[0]) <= max_year]
+        indexyears2 = [n for n in indexyears if
+                      int(n[0]) >= min_year and int(n[0]) <= max_year]
+    
+        # Get just the arrays
+        indexrays = np.dstack([a[1] for a in indexyears2])
+        hayrays = np.dstack([a[1] for a in hayears2])
+        corrs = cellCorr(indexrays, hayrays)
+        meancorr = np.nanmean(corrs)
+        meancorrs[indexname] = meancorr
+        correlations[indexname] = corrs
+
+    # Create data frame of mean correlations
+    df = pd.DataFrame([meancorrs]).T
+    df.columns = ["Correlation"]
+    df = df.round(4)
+    df.sort_values("Correlation", ascending=False)
+
+    return df
+
+
 def makeMask(rasterpath, savepath):
     """
         This will take in a tif and output a mask of NaNs and 1's
@@ -2161,7 +2309,7 @@ def readRasters2(rasterpath, navalue=-9999):
     The file naming convention required is: "INDEXNAME_YYYYMM.tif"
     """
     alist = []
-    files = glob.glob(os.path.join(rasterpath, '*'))
+    files = glob.glob(os.path.join(rasterpath, '*tif'))
     files = [f for f in files if os.path.isfile(f)]
     names = [os.path.basename(files[i]) for i in range(len(files))]
     for i in tqdm(range(len(files)), position=0):
@@ -2228,6 +2376,46 @@ def standardize2(indexlist):
         return(newarray)
     standardizedlist = [[indexlist[i][0],single(indexlist[i][1],mu,sd)] for i in range(len(indexlist))]
     return(standardizedlist)
+
+
+def toArray(hay_df):
+    '''
+    This returns a list of arrays in this format:
+
+        [[year, 2-d array (tons/acre)], [year, 2-d array (tons/acre)], ...]
+
+    '''
+    hay_df = hay_df[['year', 'fips', 'value']]
+    carrays = readRaster('data/full_county_0_25.tif', 1, -9999)[0]
+    fips = pd.unique(hay_df.fips)
+    fips = [float(f) for f in fips]
+    carrays[~np.isin(carrays, fips)] = np.nan
+    years = list(pd.unique(hay_df.year))
+    years.sort()
+    yarrays = [np.repeat(y, 36000).reshape(120, 300) for y in years]
+    datarays = [np.stack([carrays, yay]) for yay in yarrays]    
+    def harray(data):
+        if np.isnan(data[0]):
+            return data[0]
+        else:
+            year = data[1]
+            fips = '{:05d}'.format(int(data[0]))
+            year_df = hay_df[hay_df.year == year]
+            value = pd.unique(year_df.value[year_df.fips == fips])
+            if len(value) == 0:
+                value = np.nan
+            else:
+                value = value[0]
+            return(value)
+
+    hayrays = [np.apply_along_axis(harray, 0, d) for
+               d in tqdm(datarays, position=0)]
+
+    hayrays = [[years[i], hayrays[i]] for i in range(len(years))]
+
+    return hayrays
+
+
 
 ###############################################################################
 ##################### Write single array to tiffs #############################

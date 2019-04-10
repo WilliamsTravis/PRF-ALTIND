@@ -1,0 +1,37 @@
+Parameter|Max Length|Definition
+
+agg_level_desc|40|Aggregation level or geographic granularity of the data (e.g., STATE, AG DISTRICT, COUNTY, REGION, ZIP CODE).
+
+state_ansi|2|American National Standards Institute (ANSI) standard 2-digit state codes.
+
+state_fips_code|2| NASS 2-digit state codes; include 99 and 98 for US TOTAL and OTHER STATES, respectively; otherwise match ANSI codes.
+
+state_alpha|2|State abbreviation, 2-character alpha code.
+
+state_name|30|State full name.
+
+asd_code|2|NASS defined county groups, unique within a state, 2-digit ag statistics district code.\n
+
+asd_desc|60|Ag statistics district name.
+
+county_ansi|3|ANSI standard 3-digit county codes.
+
+county_code|3|NASS 3-digit county codes; includes 998 for OTHER (COMBINED) COUNTIES and Alaska county codes; otherwise match ANSI codes.
+
+county_name|30|County name.
+
+region_desc|80|NASS defined geographic entities not readily defined by other standard geographic levels. A region can be a less than a state (SUB-STATE) or a group of states (MULTI-STATE), and may be specific to a commodity.
+
+zip_5|5|US Postal Service 5-digit zip code.
+
+watershed_code|8|US Geological Survey (USGS) 8-digit Hydrologic Unit Code (HUC) for watersheds.
+
+watershed_desc|120|Name assigned to the HUC.
+
+congr_district_code|2|US Congressional District 2-digit code.
+
+country_code|4|US Census Bureau, Foreign Trade Division 4-digit country code, as of April, 2007.
+
+country_name|60|Country name.
+
+location_desc|120|Full description for the location dimension.

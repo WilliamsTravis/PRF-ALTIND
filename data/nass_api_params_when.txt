@@ -1,0 +1,15 @@
+Parameter|Max Length|Definition
+
+year|4|The numeric year of the data.
+
+freq_desc|30|Length of time covered (ANNUAL, SEASON, MONTHLY, WEEKLY, POINT IN TIME). MONTHLY often covers more than one month. POINT IN TIME is as of a particular day.
+
+begin_code|2|If applicable, a 2-digit code corresponding to the beginning of the reference period (e.g., for freq_desc = MONTHLY, begin_code ranges from 01 (January) to 12 (December)).
+
+end_code|2|If applicable, a 2-digit code corresponding to the end of the reference period (e.g., the reference period of JAN THRU MAR will have begin_code = 01 and end_code = 03).
+
+reference_period_desc|40|The specific time frame, within a freq_desc.
+
+week_ending|10|Week ending date, used when freq_desc = WEEKLY.
+
+load_time|19|Date and time indicating when record was inserted into Quick Stats database.
