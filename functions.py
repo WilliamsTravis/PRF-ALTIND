@@ -10,29 +10,11 @@ import os
 
 if platform == 'win32':
     homepath = "C:/users/user/github/"
-    # os.chdir(homepath + "PRF-ALTIND")
-    from flask_cache import Cache  # This one works on Windows but not Linux
     import gdal
-    # import rasterio
-    # import boto3
     import urllib
-    # import botocore
-    # def PrintException():
-    #     exc_type, exc_obj, tb = sys.exc_info()
-    #     f = tb.tb_frame
-    #     lineno = tb.tb_lineno
-    #     filename = f.f_code.co_filename
-    #     linecache.checkcache(filename)
-    #     line = linecache.getline(filename, lineno, f.f_globals)
-    #     print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename,
-    #           lineno, line.strip(), exc_obj))
-
-    gdal.UseExceptions()
     print("GDAL version:" + str(int(gdal.VersionInfo('VERSION_NUM'))))
 else:
     homepath = "/home/ubuntu/"
-    # os.chdir(homepath+"PRF-ALTIND")
-    from flask_caching import Cache  # This works on Linux but not Windows :)
 
 ###############################################################################
 import copy
@@ -46,6 +28,7 @@ import geopandas as gpd
 import glob
 import json
 from flask import Flask
+from flask_caching import Cache
 import matplotlib
 import matplotlib.pyplot as plt 
 from mpl_toolkits.axes_grid1 import make_axes_locatable

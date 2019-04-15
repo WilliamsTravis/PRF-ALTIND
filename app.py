@@ -1,51 +1,60 @@
-# Issues:
-    # I took garbage collection out troubleshooting, put it back in
-    # Consider automatic gunicorn reloading with a webhook responding to
-    # github pushes, something like this:
-    # https://www.julo.ch/blog/lovely-deploy-with-gunicorn/
-    # Import libraries specify support function within app
-    # PEP alerts are only working for some issues?
+# -*- coding: utf-8 -*-
+"""
+The Drought Index Insurance Analysis Laboratory (DIIAL)
+    
+    This simulates insurance payouts and other outputs from the Pasture,
+    Rangeland, and Forage program according to various drought indices. Rather,
+    it visualizes premade simulations.
 
-# In[]:
-################################# Switching to/from Ubuntu VPS ################
-from sys import platform
+
+Things to do:
+    1) Calculate insurance outputs on the fly. With a stronger machine and
+       multiple CPUs this should be possible without much lag. 
+    2) After #1 allow for average values within a user-defined area.
+    3) Add a data download option.
+
+@author: Travis Williams
+"""
+
+# In[] Set up environment
+from inspect import currentframe, getframeinfo
 import os
+from sys import platform
+
+frame = getframeinfo(currentframe()).filename
+path = os.path.dirname(os.path.abspath(frame))
+os.chdir(path)
 
 if platform == 'win32':
     homepath = "C:/users/user/github/"
-    os.chdir(homepath + "PRF-ALTIND")
-    payoutpath = "D:/"
+    payoutpath = "f:/"
     startyear = 1948
-    # payoutpath = "D:/data/prf_altind/limited/"
-    # startyear = 1980
 else:
     homepath = "/home/ubuntu/"
     payoutpath = homepath
-    os.chdir(homepath+"PRF-ALTIND")
     startyear = 1980
 
-###############################################################################
 from functions import *
 
-# In[]:
-############################ Set up initial Signal and data ###################
+# In[] Set up initial Signal and data
 import warnings
 warnings.filterwarnings("ignore")  # The empty slice warnings are too much
 
 # For insurance grid IDs
-grid = np.load(homepath + "data/prfgrid.npz")["grid"]
+grid = np.load(payoutpath + "data/prf_altind/prfgrid.npz")["grid"]
 grids = np.unique(grid[~np.isnan(grid)])
 grids = [str(int(g)) for g in grids]
 grids = [{'label': g, 'value': int(g)} for g in grids]
 mask = grid * 0 +  1
 
 # For the scatterplot maps
-source = xr.open_dataarray(homepath + "data/source_array.nc")
-source_signal = '["noaa", 2018, [2000, 2017], 0.7, "indemnities", "light", "24099"]'
+source = xr.open_dataarray(payoutpath + "data/prf_altind/source_array.nc")
+source_signal = ('["noaa", 2018, [2000, 2017], 0.7, "indemnities", ' +
+                 '"light", "24099"]')
 
 # For the datatable at the bottom
-datatable = pd.read_csv(homepath +
-                        "data/PRFIndex_specs.csv").to_dict('RECORDS')
+table_path = payoutpath + "data/prf_altind/PRFIndex_specs.csv"
+datatable = pd.read_csv(table_path).to_dict('RECORDS')
 
 # For the city list
 cities_df = pd.read_csv("cities.csv")
@@ -55,7 +64,7 @@ cities = [{'label':cities_df['NAME'][i]+", "+ cities_df['STATE'][i],
 
 ############################# Set Scales by Signal ############################
 # Create dictionary that finds max values for each strike level and return type
-scaletable = pd.read_csv(homepath + "data/PRF_Y_Scales.csv")
+scaletable = pd.read_csv(payoutpath + "data/prf_altind/PRF_Y_Scales.csv")
 
 ############################# Option #2: Calculate Payouts ####################
 # This option will be necessary for the full app of the future. Currently, all
