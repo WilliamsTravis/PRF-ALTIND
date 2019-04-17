@@ -249,34 +249,6 @@ def droughtCheck(usdm,dm):
     return drought
 
 
-def joinCounty(county, hay):
-    '''
-    This will create a dataframe with a time series of county and hay
-    production information.
-
-    With this we can either make a series of arrays of production by county
-    or go the other by transforming the index arrays into a data frame. I think
-    I'd like to go for the first option as it will allow us to see the results
-    spatially.
-    
-    How to go about that?
-    '''
-    fips = pd.read_csv('data/admin_df_0_25.csv')
-    fips['fips'] = fips['fips'].apply(lambda x: '{:05d}'.format(int(x)))
-    fips['state'] = fips['state'].apply(lambda x: x.upper())
-    fips['county'] = fips['county'].apply(lambda x: x.upper())
-    fips['cs'] = (fips['county'] + ', ' + fips['state'])
-    hay['cs'] = hay['County'] + ', ' + hay['State']
-    hay = hay.merge(fips, on='cs')
-    hay['fips'] = hay['fips'].astype(str)
-    county['fips'] = county['STATEFP'] + county['COUNTYFP']
-    hay_df = hay.merge(county, on='fips')
-    hay_df.columns = [c.lower().replace(' ', '_') for c in hay_df.columns]
-
-    return hay_df
-
-
-
 def droughtCheck2(rain,strike):
     '''
     Check how many cells in a single month were at or above the dm level
@@ -388,6 +360,7 @@ def indexHist(array, guarantee=1, mostfreq='n', binumber=1000, limmax=0, sl=0):
 #    cfm = plt.get_current_fig_manager()
 #    cfm.window.move(850,90)
 
+
 ###############################################################################
 ########################## AWS Retrieval ######################################
 ###############################################################################
@@ -435,6 +408,31 @@ def getNPYs(numpypath,csvpath):
     arrays = [[datedf['dates'][i],arrays[i]] for i in range(len(arrays))]
     return arrays
 
+def joinCounty(county, hay):
+    '''
+    This will create a dataframe with a time series of county and hay
+    production information.
+
+    With this we can either make a series of arrays of production by county
+    or go the other by transforming the index arrays into a data frame. I think
+    I'd like to go for the first option as it will allow us to see the results
+    spatially.
+    
+    How to go about that?
+    '''
+    fips = pd.read_csv('data/admin_df_0_25.csv')
+    fips['fips'] = fips['fips'].apply(lambda x: '{:05d}'.format(int(x)))
+    fips['state'] = fips['state'].apply(lambda x: x.upper())
+    fips['county'] = fips['county'].apply(lambda x: x.upper())
+    fips['cs'] = (fips['county'] + ', ' + fips['state'])
+    hay['cs'] = hay['County'] + ', ' + hay['State']
+    hay = hay.merge(fips, on='cs')
+    hay['fips'] = hay['fips'].astype(str)
+    county['fips'] = county['STATEFP'] + county['COUNTYFP']
+    hay_df = hay.merge(county, on='fips')
+    hay_df.columns = [c.lower().replace(' ', '_') for c in hay_df.columns]
+
+    return hay_df
 
 ###########################################################################
 ############## Mondo, Super Important Main Function ########################
@@ -1072,7 +1070,6 @@ def indexInsurance(indexlist, grid, premiums, bases, actuarialyear, studyears,
     return insurance_package_all
 
 
-# In[] Calculating new premiums
 def premiumLoading(indexlist, pcfs, strike=.7, interval=1):
     '''
     This is as work in progress because I don't know how they calculate the

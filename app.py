@@ -17,13 +17,29 @@ Things to do:
 """
 
 # In[] Set up environment
+import copy
+import dash
+from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+import dash_core_components as dcc
+import dash_table_experiments as dte
+import dash_html_components as html
+from flask_caching import Cache
+import gc
 from inspect import currentframe, getframeinfo
+import json
+import numpy as np
+import pandas as pd
 import os
 from sys import platform
+import time
+import xarray as xr
 
 frame = getframeinfo(currentframe()).filename
 path = os.path.dirname(os.path.abspath(frame))
 os.chdir(path)
+
+from functions import npzIn
 
 if platform == 'win32':
     homepath = "C:/users/user/github/"
@@ -34,12 +50,12 @@ else:
     payoutpath = homepath
     startyear = 1980
 
-from functions import *
 
 # In[] Set up initial Signal and data
 import warnings
 warnings.filterwarnings("ignore")  # The empty slice warnings are too much
 
+# Options:
 # For insurance grid IDs
 grid = np.load(payoutpath + "data/prf_altind/prfgrid.npz")["grid"]
 grids = np.unique(grid[~np.isnan(grid)])
@@ -57,12 +73,11 @@ table_path = payoutpath + "data/prf_altind/PRFIndex_specs.csv"
 datatable = pd.read_csv(table_path).to_dict('RECORDS')
 
 # For the city list
-cities_df = pd.read_csv("cities.csv")
-
-cities = [{'label':cities_df['NAME'][i]+", "+ cities_df['STATE'][i],
+cities_df = pd.read_csv("data/cities.csv")
+cities = [{'label':cities_df['NAME'][i]+ ", " + cities_df['STATE'][i],
            'value':cities_df['grid'][i]} for i in range(len(cities_df))]
 
-############################# Set Scales by Signal ############################
+    # Set Scales by Signal
 # Create dictionary that finds max values for each strike level and return type
 scaletable = pd.read_csv(payoutpath + "data/prf_altind/PRF_Y_Scales.csv")
 
@@ -77,8 +92,9 @@ scaletable = pd.read_csv(payoutpath + "data/prf_altind/PRF_Y_Scales.csv")
     # I believe it will necessarily be slightly slower when calculating the
     # initial insurance package of any individual index but will not slow
     # responsivity once the first call is returned. 
-    
-######################### Load Index Arrays ##################################
+    # Also, by adding a few workers or threads to even a one core machine, it
+    # might end up being comparably fast
+
 ## Actuarial Rates
 #indices = ['noaa','pdsi','pdsisc','pdsiz','spi1','spi2','spi3','spi6','spei1',
 # 'spei2','spei3','spei6']
@@ -117,57 +133,15 @@ scaletable = pd.read_csv(payoutpath + "data/prf_altind/PRF_Y_Scales.csv")
 #bases2018 = [[str(dates[i]),arrays[i]] for i in range(len(arrays))]
 
 ######################### Total Project Description ###########################
-#description= open("README.txt").read() # replace with text file
-description_text = '''
-##### Pasture, Rangeland, and Forage Rainfall-Index Insurance Program Alternate Index Project
+description_text = open("project_description.txt").read()
 
-
-Pasture, Rangeland,  and Forage (PRF) is  a  weather-based index  insurance  program that  uses  rainfall as a basis for  payout. It is provided  through the USDA's Risk Management Agency (RMA) and is 
-intended for grazing livestock  and hay  production. Grazing  production is  examined here. With the PRF policyholders will receive a payout if the  amount of  rainfall, according to anindependent and 
-government-measured  index, for a given  two-month  period  is below a chosen  percentage of the  average value for  that period  in the location of the policy.
-The percentage of average rainfall that could trigger a payout  is between 75%  and 90%, in 5% intervals, of average  rainfall for  each location and  time period and is chosen by the policyholder  in 
-advance of  the insurance  year. This percentages is referred  to the strike level here. The government subsidizes premiums at rates  dependent on the strike level, with the lowest level receiving 59%
-subsidization and  the highest 51%. Higher strike  levels  increase premiums and decrease  subsidies, but  also increase the  chance  of payout. The degree  to  which a present  index falls below  the
-baseline average for a  particular interval is taken into account when determining the amount of payout, i.e. an index of .3 pays more than .5.This is done using what is called the payment calculation 
-factor (PCF), which is the ratio of the  difference  between the strike  level and observed  index values and the  strike level ((strike – index)/strike). Therefore, higher strike levels also increase
-the chances of larger  payouts.
-
-Importantly, it is not possible to insure the entire year and the policyholder must  choose how to allocate coverage over the eligible time periods. Eligible time periods are, as mentioned,  organized
-into two-month intervals.  These intervals overlap  such that the first includes  January  and February, the second  February and March and so on. December and January do  not overlap resulting  in 11 
-intervals per year. There are lower and upper limits to the amount of coverage that can be allocated to any one interval, depending on the county. 100% of the total coverage chosen by the policyholder
-must be split between these  intervals, however consecutive intervals may not be chosen because that would result in insurance of the same month twice. It is advised, by the RMA, that the intervals in
-which rainfall is most  important to forage production are chosen for the largest portions of  coverage. For example, 30% coverage could be allocated to the March-April  interval, 30%  to May-Jun, and
-40% to July-August.  There is, however, significant incentive not to insure growing season months for large portions of the country.
-This project examines  how payouts patterns would change if the insurance program used any of a collection of alternate indices, with a focus on the seasonality of payment incentive. What is displayed
-below are potential payments  for every interval for a 500-acre policy allocating 50%  of  protection to each interval.  This shows  which intervals would have triggered  payment should they have been
-chosen by a policyholder.   This is displayed as a map of average payments for each location over time, a bar chart of average payments  in each insurance interval for a chosen location over time, and 
-a time series of individual potential payments at a chosen location.  Actuarial rates can be based-off of either the 2017 or 2018  insurance year, in case there  is  interest in the effects of changes
-on payment distributions.  Maps and charts can display potential values of producer premiums after subsidization, total indemnities, net  indemnities accounting for  premium payments,  payment trigger
-frequencies, payment  calculation factors, and unsubsidized loss ratios between  indemnities and  premiums.  Available alternate drought  indices include  the Palmer Drought Severity Index (PDSI), the
-self-calibrated Palmer  Drought Severity Index (PDSIsc),  the Palmer Z-index (Z Index), 1-, 2-, 3-, and  6-month Standardized Precipitation  Indices (SPI), and the 1-, 2-, 3-, and 6-month Standardized
-Precipitation Evapotranspiration Indices (SPEI).
-
-Drought indices were  adjusted for outliers, standardized,  associated with strike values proportional  to those of the rainfall index,  and payments  were  scaled in order to account for an actuarial 
-system designed around rainfall. The results must be interpreted in terms of payout potential and not as a simulation of possible insurance plan configurations.
-
-Earth Lab – CIRES at the University of Colorado Boulder
-Author: Travis Williams
-Email: Travis.Williams@colorado.edu
-Date: 5-26-2018
-
-
-'''
 # These become titles for hover info
 description  = ''
 mapinfo = ''
 trendinfo = ''
 seriesinfo = ''
 
-# In[]:
-####################################################################################################
-############################ Create the App Object #################################################
-####################################################################################################
-# Create Dash Application Object
+# In[]: Create the App Object 
 app = dash.Dash(__name__)
 
 # The stylesheet is based one of the DASH examples
@@ -181,10 +155,7 @@ server = app.server
 cache = Cache(config={'CACHE_TYPE': 'simple'})
 cache.init_app(server)
 
-# In[]:
-###############################################################################
-############################ Create Lists and Dictionaries ####################
-###############################################################################
+# In[] Create Lists and Dictionaries
 # Index Paths
 indices = [{'label': 'Rainfall Index', 'value': 'noaa'},
            {'label': 'PDSI', 'value': 'pdsi'},
@@ -242,23 +213,23 @@ returnumbers = {'premiums': 0,
 
 # This is for labeling
 returndict = {'premiums': 'Potential Producer Premiums',
-               'indemnities': 'Potential Indemnities',
-               'frequencies': 'Potential Payout Frequencies',
-               'pcfs': 'Potential Payment Calculation Factors',
-               'nets': 'Potential Net Payouts',
-               'lossratios': 'Potential Loss Ratios'}
+              'indemnities': 'Potential Indemnities',
+              'frequencies': 'Potential Payout Frequencies',
+              'pcfs': 'Potential Payment Calculation Factors',
+              'nets': 'Potential Net Payouts',
+              'lossratios': 'Potential Loss Ratios'}
 trenddict = {'premiums': 'Average Premium ($)',
-               'indemnities': 'Average Indemnity ($)',
-               'frequencies': 'Average Payout Frequency',
-               'pcfs': 'Average Payment Calculation Factor',
-               'nets': 'Average Net Payout ($)',
-               'lossratios': 'Average Loss Ratio'}
+             'indemnities': 'Average Indemnity ($)',
+             'frequencies': 'Average Payout Frequency',
+             'pcfs': 'Average Payment Calculation Factor',
+             'nets': 'Average Net Payout ($)',
+             'lossratios': 'Average Loss Ratio'}
 seriesdict = {'premiums': 'Premium ($)',
-               'indemnities': 'Indemnity ($)',
-               'frequencies': 'Payout Frequency',
-               'pcfs': 'Payment Calculation Factor',
-               'nets': 'Net Payout ($)',
-               'lossratios': 'Loss Ratio'}
+              'indemnities': 'Indemnity ($)',
+              'frequencies': 'Payout Frequency',
+              'pcfs': 'Payment Calculation Factor',
+              'nets': 'Net Payout ($)',
+              'lossratios': 'Loss Ratio'}
 
 # Strike levels
 strikes = [{'label': '70%', 'value': .70},
@@ -303,8 +274,7 @@ dfcols = [{'label': "DI: Drought Index", 'value': 1},
           {'label': "MOSDPF: Monthly Payout Frequency Standard Deviation",
            'value': 16}]
 
-# Create Coordinate Index - because I can't find the array position in the
-# click event!
+# Create Coordinate Index
 xs = range(300)
 ys = range(120)
 lons = [-130 + .25*x for x in range(0,300)]
@@ -314,12 +284,11 @@ latdict = dict(zip(lats, ys))
 londict2 = {y: x for x, y in londict.items()}
 latdict2 = {y: x for x, y in latdict.items()}
 
-# Create global chart template
+
+# In[] Map Layout
 mapbox_access_token = ('pk.eyJ1IjoidHJhdmlzc2l1cyIsImEiOiJjamZiaHh4b28waXNk' +
                        'MnptaWlwcHZvdzdoIn0.9pxpgXxyyhM6qEF_dcyjIQ')
 
-# In[]:
-# Map Layout:
 # Check this out! https://paulcbauer.shinyapps.io/plotlylayout/
 layout = dict(
     autosize=True,
@@ -349,233 +318,161 @@ layout = dict(
     )
 )
 
-# In[]:
-# Create app layout
+# In[] Create app layout
 app.layout = html.Div([
-             html.Div([
-                # Title and Image
-                html.A(html.Img(
-                    src = ("https://github.com/WilliamsTravis/" +
-                            "Pasture-Rangeland-Forage/blob/master/" +
-                            "data/earthlab.png?raw=true"),
-                    className='one columns',
-                    style={
-                        'height': '40',
-                        'width': '100',
-                        'float': 'right',
-                        'position': 'static'
-                        },
-                            ),
-                        href="https://www.colorado.edu/earthlab/",
-                        target="_blank"
-                        ),
-                html.A(html.Img(
-                    src = ('https://github.com/WilliamsTravis/Pasture-' +
-                           'Rangeland-Forage/blob/master/data/' +
-                           'wwa_logo2015.png?raw=true'),
-                    className='one columns',
-                    style={
-                        'height': '50',
-                        'width': '150',
-                        'float': 'right',
-                        'position': 'static',
-                        },
-                            ),
-                        href = "http://wwa.colorado.edu/",
-                        target = "_blank"
-                            ),
-                 html.A(html.Img(
-                    src =( "https://github.com/WilliamsTravis/Pasture-" +
+
+               html.Div([
+                 # Title and Banner
+                 html.A(
+                   html.Img(
+                     src=("https://github.com/WilliamsTravis/" +
+                          "Pasture-Rangeland-Forage/blob/master/" +
+                          "data/earthlab.png?raw=true"),
+                     className='one columns',
+                     style={'height': '40',
+                            'width': '100',
+                            'float': 'right',
+                            'position': 'static'}),
+                   href="https://www.colorado.edu/earthlab/",
+                   target="_blank"),
+                 html.A(
+                   html.Img(
+                     src=('https://github.com/WilliamsTravis/Pasture-' +
+                          'Rangeland-Forage/blob/master/data/' +
+                          'wwa_logo2015.png?raw=true'),
+                     className='one columns',
+                     style={'height': '50',
+                            'width': '150',
+                            'float': 'right',
+                            'position': 'static'}),
+                   href="http://wwa.colorado.edu/",
+                   target="_blank"),
+                 html.A(
+                   html.Img(
+                     src=("https://github.com/WilliamsTravis/Pasture-" +
                           "Rangeland-Forage/blob/master/data/" +
                           "nidis.png?raw=true"),
-                    className='one columns',
-                    style={
-                        'height': '50',
-                        'width': '200',
-                        'float': 'right',
-                        'position': 'relative',
-                        },
-                            ),
-                        href = "https://www.drought.gov/drought/",
-                        target = "_blank"
-                        ),
-                 html.A(html.Img(
-                    src = ("https://github.com/WilliamsTravis/Pasture-" +
-                           "Rangeland-Forage/blob/master/data/" +
-                           "cires.png?raw=true"),
-                    className='one columns',
-                    style={
-                        'height': '50',
-                        'width': '100',
-                        'float': 'right',
-                        'position': 'relative',
-                        'margin-right': '20',
-                        },
-                            ),
-                        href = "https://cires.colorado.edu/",
-                        target = "_blank"
-                        ),
-
-                ],
-                className = 'row'
-                ),
-        html.Div(
-            [
-                html.H1(
-                    'Drought Index Insurance Analysis Laboratory',
-                    className='twelve columns'
-                ),
-                html.Button(id = 'description_button',
-                            children = 'Project Description (Click)',
-                            title = description,
-                            type='button'),
-            ],
-            className='row' ,
-            style = {
-                    'font-weight': 'bold',
-                     'text-align': 'center',
-                     'margin-top': '40',
-                     'margin-bottom': '40'
-                     }
-            ),
-            html.Div(
-                    [
-                        dcc.Markdown(id="description",
-                                    children=description)
-                    ],
-                    style = {'text-align': 'justify',
-                             'margin-left': '150',
-                             'margin-right': '150'}
-                    ),
-                html.Div(
-                    [
-                        dcc.Markdown(id="loading...",
-                                    children=description)
-                    ],
-                    style = {'text-align': 'justify',
-                             'margin-left': '150',
-                             'margin-right': '150'}
-                    ),
-
-        # Year Slider Text
-        html.Div(
-            [
-                html.H5(
-                    '',
-                    id='year_text',
-                    className='six columns',
-                    style={'text-align': 'justify'}
-                ),
-            ],
-            className='row'
-        ),
-        # Year Sliders
-        html.Div(
-            [
-                html.P('Study Period Year Range'),
-                dcc.RangeSlider(
-                    id='year_slider',
-                    value=[startyear, 2017],
-                    min=startyear,
-                    max=2017,
-                    marks=yearmarks
-                ),
-            ],
-            className = "twelve columns",
-            style={'margin-top': '20',
-                   'margin-bottom': '40'}
-        ),
+                     className='one columns',
+                     style={'height': '50',
+                            'width': '200',
+                            'float': 'right',
+                            'position': 'relative'}),
+                   href="https://www.drought.gov/drought/",
+                   target="_blank"),
+                 html.A(
+                   html.Img(
+                     src=("https://github.com/WilliamsTravis/Pasture-" +
+                          "Rangeland-Forage/blob/master/data/" +
+                          "cires.png?raw=true"),
+                     className='one columns',
+                     style={'height': '50',
+                            'width': '100',
+                            'float': 'right',
+                            'position': 'relative',
+                            'margin-right': '20'}),
+                   href="https://cires.colorado.edu/",
+                   target="_blank")],
+                 className='row'),
+         html.Div([
+           html.H1('Drought Index Insurance Analysis Laboratory',
+                   className='twelve columns'),
+           html.Button(id='description_button',
+                       children='Project Description (Click)',
+                       title=description,
+                       type='button')],
+           className='row' ,
+           style={'font-weight': 'bold',
+                  'text-align': 'center',
+                  'margin-top': '40',
+                  'margin-bottom': '40'}),
+         html.Div([
+           dcc.Markdown(id="description",
+                        children=description)],
+           style={'text-align': 'justify',
+                  'margin-left': '150',
+                  'margin-right': '150'}),
+ 
+         # Year Slider Text
+         html.Div([
+           html.H5('',
+                   id='year_text',
+                   className='six columns',
+                   style={'text-align': 'justify'})],
+           className='row'),
+         # Year Sliders
+         html.Div([
+           html.P('Study Period Year Range'),
+             dcc.RangeSlider(id='year_slider',
+                             value=[startyear, 2017],
+                             min=startyear,
+                             max=2017,
+                             marks=yearmarks)],
+           className = "twelve columns",
+           style={'margin-top': '20',
+                  'margin-bottom': '40'}),
 
         # Selections
-        html.Div(
-            [
-                # Dropdowns
-                html.Div(
-                    [
-                        html.P('Drought Index'),
-                        dcc.Dropdown(
-                            id = 'index_choice',
-                            options = indices,
-                            value = "noaa",
-                            placeholder = "NOAA CPC-Derived Rainfall Index"
-                        ),
-                        html.P(""),
-                        html.P('Choose Information Type'),
-                        dcc.Dropdown(
-                            id = 'return_type',
-                            value = 'indemnities',
-                            multi = False,
-                            options = returns
-                        ),
-                        ],
-                    className='four columns'
-                ),
+        html.Div([
+          # Dropdowns
+          html.Div([
+            html.P('Drought Index'),
+            dcc.Dropdown(id='index_choice',
+                         options=indices,
+                         value="noaa",
+                         placeholder="NOAA CPC-Derived Rainfall Index"),
+            html.P(""),
+            html.P('Choose Information Type'),
+            dcc.Dropdown(id='return_type',
+                         value='indemnities',
+                         multi=False,
+                         options=returns)],
+            className='four columns'),
 
-                # Other Selections
-                html.Div(# Four-a
-                    [
-                        html.P('Strike Level'),
-                        dcc.RadioItems(
-                            id='strike_level',
-                            options=strikes,
-                            value=.75,
-                            labelStyle={'display': 'inline-block'}
-                        ),
-                        html.P('Actuarial Year'),
-                        dcc.RadioItems(
-                            id='actuarial_year',
-                            value=2018,
-                            options=[{'label': '2017', 'value': 2017},
-                                      {'label': '2018', 'value': 2018}],
-                            labelStyle={'display': 'inline-block'}
-                        ),
+          # Other Selections
+          html.Div([
+            html.P('Strike Level'),
+            dcc.RadioItems(id='strike_level',
+                           options=strikes,
+                           value=.75,
+                           labelStyle={'display': 'inline-block'}),
+            html.P('Actuarial Year'),
+            dcc.RadioItems(id='actuarial_year',
+                           value=2018,
+                           options=[{'label': '2017', 'value': 2017},
+                                    {'label': '2018', 'value': 2018}],
+                           labelStyle={'display': 'inline-block'}),
+            html.Button(id='submit', 
+                        type='submit', 
+                        n_clicks=0, 
+                        n_clicks_timestamp='0',
+                        children='submit')],
+            className='four columns'),
 
-                        html.Button(id='submit', 
-                                    type='submit', 
-                                    n_clicks=0, 
-                                    n_clicks_timestamp='0',
-                                    children='submit')
-
-                    ],
-                    className='four columns'
-                ),
-
-                # Map Selector
-                html.Div([
-                        html.P("Map Type"),
-                        dcc.Dropdown(
-                                id="map_type",
-                                value="light",
-                                options=maptypes,   
-                                multi=False
-                                    ),
-                        html.P(" "),
-                        html.P("RMA Grid ID"),
-                        dcc.Dropdown(
-                                id="grid_choice",
-                                value=24099,
-                                placeholder="Type Grid ID",
-                                options=grids,
-                                multi=False,
-                                searchable=True
-                                ),
-                        html.P(" "),
-                        html.P("City"),
-                        dcc.Dropdown(
-                                id="city_choice",
-                                value=24099,
-                                placeholder="Type city name",
-                                options=cities,
-                                multi=False,
-                                searchable=True
-                                ),
-
-                    ],
-                    className = 'four columns'
-                ),
-               ],
-                className = 'row'
-            ),
+          # Map Selector
+          html.Div([
+            html.P("Map Type"),
+            dcc.Dropdown(id="map_type",
+                         value="light",
+                         options=maptypes,   
+                         multi=False),
+            html.P(" "),
+            html.P("RMA Grid ID"),
+            dcc.Dropdown(id="grid_choice",
+                         value=24099,
+                         placeholder="Type Grid ID",
+                         options=grids,
+                         multi=False,
+                         searchable=True),
+            html.P(" "),
+            html.P("City"),
+            dcc.Dropdown(id="city_choice",
+                         value=24099,
+                         placeholder="Type city name",
+                         options=cities,
+                         multi=False,
+                         searchable=True)],
+            className='four columns')],
+            className='row'),
 
         # Hidden DIV to store the signal
         html.Div(id='signal',
@@ -667,7 +564,7 @@ app.layout = html.Div([
                         html.H5("Column Key"),
                         dcc.Dropdown(options=dfcols,
                                      placeholder="Acronym: Description (Click)"),
-                        dt.DataTable(
+                        dte.DataTable(
                              rows = datatable,
                              id = "summary_table",
                              editable=False,
