@@ -17,6 +17,7 @@ Things to do:
 """
 
 # In[] Set up environment
+from collections import OrderedDict
 import copy
 import dash
 from dash.dependencies import Input, Output, State
@@ -33,6 +34,7 @@ import pandas as pd
 import os
 from sys import platform
 import time
+import urllib
 import xarray as xr
 
 frame = getframeinfo(currentframe()).filename
@@ -506,9 +508,9 @@ app.layout = html.Div([
                     [
                         dcc.Graph(id='main_graph'),
                         html.Button(id='map_info',
-                                    title = mapinfo,
+                                    title=mapinfo,
                                     type='button',
-                                    n_clicks = 0,
+                                    n_clicks=0,
                                     children='Map Info \uFE56 (Hover)'),
                     ],
                     className='seven columns',
@@ -524,6 +526,13 @@ app.layout = html.Div([
                                     title = trendinfo,
                                     n_clicks = 0,
                                     children='Trend Info \uFE56 (Hover)'),
+                        html.A(
+                          id='monthly_dl_link',
+                          children=html.Button(
+                                  'Download Data',
+                                  title='Download a csv of this data.'),
+                          href='',
+                          download='monthly_pattern.csv'),
                     ],
                     className='five columns',
                     style={
@@ -547,6 +556,13 @@ app.layout = html.Div([
                                     title = seriesinfo,
                                     n_clicks = 0,
                                     children='Time Series Info \uFE56 (Hover)'),
+                        html.A(
+                          id='full_dl_link',
+                          children=html.Button(
+                                  'Download Data',
+                                  title='Download a csv of this data.'),
+                          href='',
+                          download='time_series.csv')
                     ],
                     style={'margin-top': '10'}
                 ),
@@ -943,7 +959,8 @@ def makeMap(signal, maptype):
 ###############################################################################
 ###############################################################################
 ###############################################################################
-@app.callback(Output('trend_graph','figure'),
+@app.callback([Output('trend_graph','figure'),
+               Output('monthly_dl_link', 'href')],
               [Input('main_graph','clickData'),
                Input('signal','children'),
                Input('targetid_store','children')])
@@ -955,6 +972,7 @@ def makeTrendBar(clickData, signal, targetid):
     # Get dataframe then signal for labeling
     df = retrieve_data(signal)
     signal = json.loads(signal)
+    choice = signal[0]
     return_type = signal[4]
     date1 = signal[2][0]
     date2 = signal[2][1]
@@ -976,6 +994,7 @@ def makeTrendBar(clickData, signal, targetid):
     timeseries = [[item[0],item[1][index]] for item in df]
     dates = [int(item[0][-6:-2]) for item in df]
 
+
     # For the x axis and value matching
     intervals = [format(int(interval),'02d') for interval in range(1,12)]
     months = {1:'Jan-Feb',
@@ -994,6 +1013,7 @@ def makeTrendBar(clickData, signal, targetid):
     valuelist = [[series[1] for series in timeseries if
                   series[0][-2:] ==  interval] for interval in intervals]
 
+
     # In tuple form for the bar chart
     if return_type == 'frequencies':
         averages =  tuple(np.asarray([np.sum(sublist) for
@@ -1003,6 +1023,16 @@ def makeTrendBar(clickData, signal, targetid):
         averages =  tuple(np.asarray([np.mean(sublist) for
                                       sublist in valuelist]))
         calc = "Averages "
+
+    # Create downloadable table as a url string
+    columns = OrderedDict({'interval': intervals,
+                           'data_type': returndict.get(return_type),
+                           'value': averages,
+                           'grid': int(targetid),
+                           'index': indexnames[choice]})
+    df = pd.DataFrame(columns)
+    df_str = df.to_csv(encoding='utf-8', index=False)
+    href='data:text/csv;charset=utf-8,' + urllib.parse.quote(df_str)
 
     # For display
     intlabels = [months.get(i) for i in range(1,12)]
@@ -1096,17 +1126,18 @@ def makeTrendBar(clickData, signal, targetid):
                                  tickangle=45)
     layout_count['yaxis'] = yaxis
     figure = dict(data=data, layout=layout_count )
-    return figure
+    return figure, href
 
 # In[]
 ###############################################################################
 ######################## Time Series ##########################################
 ###############################################################################
-@app.callback(Output('series_graph','figure'),
-               [Input('main_graph','clickData'),
-                Input('signal','children'),
-#                Input('grid_choice','value'),
-                Input('targetid_store','children')])
+@app.callback([Output('series_graph','figure'),
+               Output('full_dl_link', 'href')],
+              [Input('main_graph','clickData'),
+               Input('signal','children'),
+#               Input('grid_choice','value'),
+               Input('targetid_store','children')])
 def makeSeries(clickData,signal,targetid):
     '''
     Just like the trend bar, but for a time series.
@@ -1120,6 +1151,7 @@ def makeSeries(clickData,signal,targetid):
 
     # Get the signal for Labeling
     signal = json.loads(signal)
+    choice = signal[0]
     return_type = signal[4]
     return_label = returndict.get(return_type)
     date1 = signal[2][0]
@@ -1145,6 +1177,17 @@ def makeSeries(clickData,signal,targetid):
         valuesum = "<b>Total: {:,}".format(int(np.nansum(values))) + "</b>"
     else:
         valuesum = "<b>Total: ${:,}".format(int(np.nansum(values))) + "</b>"
+
+    # Create downloadable table as a url string
+    columns = OrderedDict({'date': dates,
+                           'data_type': return_label,
+                           'value': values,
+                           'grid': int(targetid),
+                           'index': indexnames[choice]})
+    df = pd.DataFrame(columns)
+    df_str = df.to_csv(encoding='utf-8', index=False)
+    href='data:text/csv;charset=utf-8,' + urllib.parse.quote(df_str)
+
 
     # Create Seasonal Colors
     colors = {
@@ -1178,7 +1221,7 @@ def makeSeries(clickData,signal,targetid):
             x=dates,
             y=values,
             type='bar',
-            name=return_label + ' Value Ditribution',
+            name=return_label + ' Value Distribution',
             opacity=1,
             marker=dict(color=colors,
                         line=dict(width=1, color="#000000")
@@ -1253,7 +1296,7 @@ def makeSeries(clickData,signal,targetid):
                 tickvals=xlabels, ticktext=xlabels, tickangle=45 )
 
     figure = dict(data=data, layout=layout_count)
-    return figure
+    return figure, href
 
 
 # In[]:
